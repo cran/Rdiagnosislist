@@ -60,6 +60,11 @@ SNOMEDconcept <- function(x, active_only = TRUE,
 	# Declare names to be used for non-standard evaluation for R CMD check
 	active <- conceptId <- NULL
 	
+	if (length(x) == 0){
+		out <- integer64(0)
+		class(out) <- c('SNOMEDconcept', 'integer64')
+		return(out)
+	}
 	if ('integer64' %in% class(x)){
 		# correct format for a SNOMED CT concept ID
 		out <- x
@@ -231,6 +236,12 @@ description <- function(conceptIds,
 	# Declare names used for non-standard evaluation for R CMD check
 	id <- term <- active <- typeId <- conceptId <- NULL
 	
+	# Return and emtpy data.table if there is no input data
+	if (length(conceptIds) == 0){
+		return(data.table(id = integer64(0), conceptId = integer64(0),
+			term = character(0)))
+	}
+	
 	CONCEPTS <- data.table(conceptId = as.SNOMEDconcept(conceptIds),
 		order = seq_along(conceptIds))
 	TOMATCH <- data.table(conceptId = unique(CONCEPTS$conceptId))
@@ -307,7 +318,11 @@ union.default <- function(x, y){
 #' @method intersect SNOMEDconcept
 #' @export
 intersect.SNOMEDconcept <- function(x, y){
-	out <- unique(x[x %in% as.SNOMEDconcept(y)])
+	if (length(y) == 0 | length(x) == 0){
+		out <- bit64::integer64(0)
+	} else {
+		out <- unique(x[x %in% as.SNOMEDconcept(y)])
+	}
 	class(out) <- c('SNOMEDconcept', 'integer64')
 	out
 }
@@ -332,7 +347,11 @@ intersect.default <- function(x, y){
 #' @method setdiff SNOMEDconcept
 #' @export
 setdiff.SNOMEDconcept <- function(x, y){
-	out <- x[!(x %in% as.SNOMEDconcept(y))]
+	if (length(y) == 0 | length(x) == 0){
+		out <- x
+	} else {
+		out <- unique(x[!(x %in% as.SNOMEDconcept(y))])
+	}
 	class(out) <- c('SNOMEDconcept', 'integer64')
 	out
 }

@@ -4,7 +4,10 @@
 \alias{getSNOMED}
 \title{Retrieves SNOMED CT dictionary from the global environment}
 \usage{
-getSNOMED()
+getSNOMED(SNOMEDname = "SNOMED")
+}
+\arguments{
+\item{SNOMEDname}{name of the SNOMED environment to search for}
 }
 \value{
 SNOMED environment from the global environment
@@ -14,9 +17,7 @@ Returns an object named 'SNOMED' from the global
 environment. Returns an error if no such object exists,
 or if it is not an environment containing tables named
 CONCEPT, RELATIONSHIP, STATEDRELATIONSHIP and DESCRIPTION.
-There is no attempt to check that these tables are actually, if available. environment containing a selection of SNOMED CT
-terms, their relationships and descriptions which are
-provided with the package
+There is no attempt to check that these tables are actually valid.
 }
 \examples{
 SNOMED <- sampleSNOMED()
@@ -24,4 +25,8 @@ SNOMED2 <- getSNOMED()
 
 # To display metadata for this SNOMED CT dictionary
 SNOMED2$metadata
+}
+\seealso{
+CONCEPT, DESCRIPTION, RELATIONSHIP, STATEDRELATIONSHIP, 
+REFSET, SIMPLEMAP, EXTENDEDMAP, loadSNOMED, sampleSNOMED
 }

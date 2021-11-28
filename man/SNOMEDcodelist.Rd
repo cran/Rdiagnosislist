@@ -5,7 +5,17 @@
 \alias{as.SNOMEDcodelist}
 \title{Convert a data.frame to a SNOMEDcodelist object}
 \usage{
-SNOMEDcodelist(x, include_desc = TRUE, SNOMED = getSNOMED())
+SNOMEDcodelist(
+  x,
+  include_desc = FALSE,
+  format = c("simple", "tree", "exptree"),
+  codelist_name = NULL,
+  version = NULL,
+  author = NULL,
+  date = NULL,
+  SNOMED = getSNOMED(),
+  show_excluded_descendants = FALSE
+)
 
 as.SNOMEDcodelist(x, ...)
 }
@@ -18,10 +28,29 @@ in integer64 or text format and optional column 'include_desc'
 included.}
 
 \item{include_desc}{Boolean vector stating whether descendants
-are included, recycled if necessary. Default = TRUE.
-Ignored if}
+are included, recycled if necessary. Default = FALSE.
+Ignored if x contains a column 'include_desc'}
+
+\item{format}{Whether the codelist is expressed as a simple
+enumeration of concepts ('simple'), as a set of concept
+hierarchies ('tree'), or concept hierarchies showing all
+descendant terms ('exptree'). Codelists can be converted
+between the formats, but the result of conversion may depend on
+the SNOMED CT dictionary being used.}
+
+\item{codelist_name}{Name of the codelist (character vector of length 1)}
+
+\item{version}{Version of the codelist (character vector of length 1)}
+
+\item{author}{Author of the codelist (character vector of length 1)}
+
+\item{date}{Date attributed to the codelist (character vector of length 1)}
 
 \item{SNOMED}{environment containing a SNOMED dictionary}
+
+\item{show_excluded_descendants}{Whether to show excluded
+descendants alongside the codes included in the codelist (for
+a 'tree' or 'expandedtree' format codelist).}
 
 \item{...}{other arguments to pass to SNOMEDcodelist}
 }
@@ -29,7 +58,7 @@ Ignored if}
 An object of class 'SNOMEDcodelist'
 }
 \description{
-SNOMEDcodelist is an S3 class for lists of SNOMED codes.
+SNOMEDcodelist is an S3 class for lists of SNOMED CT  concepts.
 It consists of conceptId and include_desc columns. The 
 option to include descendants allows the creation of more succinct
 SNOMED codelists.
@@ -55,10 +84,14 @@ as.SNOMEDcodelist(data.frame(conceptId = my_concepts,
 \seealso{
 Other SNOMEDcodelist functions: 
 \code{\link{expandSNOMED}()},
-\code{\link{is.SNOMEDcodelist}()}
+\code{\link{export}()},
+\code{\link{is.SNOMEDcodelist}()},
+\code{\link{print.SNOMEDcodelist}()}
 
 Other SNOMEDcodelist functions: 
 \code{\link{expandSNOMED}()},
-\code{\link{is.SNOMEDcodelist}()}
+\code{\link{export}()},
+\code{\link{is.SNOMEDcodelist}()},
+\code{\link{print.SNOMEDcodelist}()}
 }
 \concept{SNOMEDcodelist functions}

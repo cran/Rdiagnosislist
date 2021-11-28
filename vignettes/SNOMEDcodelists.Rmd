@@ -26,6 +26,11 @@ The SNOMED dictionaries are contained within four key tables:
 - STATEDRELATIONSHIP - directly stated relationships
 - RELATIONSHIP - relationships between terms inferred from other relationships
 
+The following additional tables are also used 
+- SIMPLEMAP - Maps to Clinical Terms Version 3 and some other terms (e.g. COVID-19 terms)
+- EXTENDEDMAP - Maps to ICD-10 and OPCS4
+- REFSET - Sets of SNOMED CT concepts used for specific clinical / operational purposes 
+
 Each SNOMED CT concept may have any number of synonyms, but there are the following special types:
 
 - Fully Specified Name - this is the most precise description of the concept, but is too verbose for general use.
@@ -36,11 +41,13 @@ Each concept also has a semantic tag, which denotes what type of concept it is (
 Loading the SNOMED CT dictionaries
 ----------------------------------
 
-This package contains functions to import a set of SNOMED CT release files from NHS Digital TRUD (https://isd.digital.nhs.uk/trud3/user/guest/group/0/home). The International and UK release files are provided in separate downloads, and need to be combined to create the whole dictionary. This can be done using the loadSNOMED() function and specifying a vector of folder paths to load.
+This package contains functions to import a set of SNOMED CT release files which should be obtained from NHS Digital TRUD (https://isd.digital.nhs.uk/trud/user/guest/group/0/home). The International and UK release files are provided in two separate downloads, and need to be combined to create the  whole dictionary. This can be done using the loadSNOMED() function and specifying a vector of folder paths to load.
+  
+For most users the 'Snapshot' files, containing the current versions of the entries, will be the most useful, and these are loaded by loadSNOMED() function. The  sample dictionaries in this package are also based on the Snapshot file format. The 'Delta' files contain changes since the previous version, and the 'Full' files contain a history of the changes to each entry.
 
-For most users the 'Snapshot' files, containing the current versions of the entries, will be the most useful, and the sample dictionaries in this package are based on the Snapshot file format. The 'Delta' files contain changes since the previous version, and the 'Full' files contain a history of the changes to each entry.
+When the NHS Digital SNOMED CT files are extracted, they will be in a folder such as 'SnomedCT_InternationalRF2_PRODUCTION_20200731T120000Z', and the relevant tables will be in the subfolder 'Snapshot/Terminology' (main SNOMED CT tables) and 'Snapshot/Refset' (mappings and refsets). Code such as the following can be used to load the tables into R (the file paths should be changed to the actual file paths on your system).
 
-When the NHS Digital SNOMED CT files are extracted, they will be in a folder such as 'SnomedCT_InternationalRF2_PRODUCTION_20200731T120000Z', and the relevant tables will be in the subfolder 'Snapshot/Terminology'. Code such as the following can be used to load the tables into R (the file paths should be changed to the actual file paths on your system).
+Note that the UK SNOMED CT release needs to be loaded together with the corresponding international release. The UK release cannot be used in isolation because it is incomplete. 
 
 ```
 # Load package
@@ -49,8 +56,8 @@ require(Rdiagnosislist)
 # Load UK and International SNOMED CT release files into an
 # R environment called 'SNOMED'
 SNOMED <- loadSNOMED(c(
-  'SnomedCT_InternationalRF2_PRODUCTION_20200731T120000Z/Snapshot/Terminology',
-  'SnomedCT_UKClinicalRF2_PRODUCTION_20210317T000001Z/Snapshot/Terminology'))
+  'SnomedCT_InternationalRF2_PRODUCTION_20200731T120000Z/',
+  'SnomedCT_UKClinicalRF2_PRODUCTION_20210317T000001Z/'))
 
 # Save the 'SNOMED' environment to a file on disk
 saveRDS(SNOMED, file = 'mySNOMED.RDS')
@@ -76,15 +83,12 @@ TEST <- sampleSNOMED()
 # Objects within the environment can be retrieved using the $ operator
 # or the 'get' function. We will export the sample dictionaries to a
 # temporary folder to show how to reload them using loadSNOMED()
+exportSNOMEDenvir(TEST, tempdir())
+dir(tempdir())
 
-for (table in c('Concept', 'Description', 'Relationship',
-  'StatedRelationship')){
-  write.table(get(toupper(table), envir = TEST), paste0(tempdir(),
-    '/sct_', table, '_test.txt'), row.names = FALSE, sep = '\t', quote = FALSE)
-}
-
-# loadSNOMED searches for files containing _Concept_, _Description_,
-# _Relationship_ or _StatedRelationship_, as in the actual SNOMED CT
+# loadSNOMED searches for files containing '_Concept_', '_Description_',
+# '_StatedRelationship_', '_Relationship_', 'Refset_SimpleMap',
+# 'Refset_ExtendedMap' or 'Refset_Simple', as in the actual SNOMED CT
 # release files.
 
 # Import using the loadSNOMED function
@@ -102,29 +106,29 @@ The function 'as.SNOMEDconcept' can be used to retrieve the SNOMED concept ID ma
 
 ```{r}
 # Make sure the SNOMED environment is available and contains the SNOMED dictionary
-as.SNOMEDconcept('Heart failure', SNOMED = SNOMED)
+SNOMEDconcept('Heart failure', SNOMED = SNOMED)
 
 # To use the sample SNOMED dictionary for testing
-as.SNOMEDconcept('Heart failure', SNOMED = sampleSNOMED())
+SNOMEDconcept('Heart failure', SNOMED = sampleSNOMED())
 
 # If an object named SNOMED containing the SNOMED dictionary is available
 # in the current environment, it does not need to be stated in the
 # function call
 SNOMED <- sampleSNOMED()
-as.SNOMEDconcept('Heart failure')
+SNOMEDconcept('Heart failure')
 
 # The argument 'exact' can be used to specify whether a regular expression
 # search should be done, e.g.
-as.SNOMEDconcept('Heart f', exact = FALSE)
+SNOMEDconcept('Heart f', exact = FALSE)
 
 # The 'description' function can be used to return the descriptions of
 # the concepts found. It returns a data.table with the fully specified 
 # name for each term.
-description(as.SNOMEDconcept('Heart f', exact = FALSE))
+description(SNOMEDconcept('Heart f', exact = FALSE))
 
 # The 'semantic type' function returns the semantic type of the concept
 # from the Fully Specified Name
-semanticType(as.SNOMEDconcept('Heart failure'))
+semanticType(SNOMEDconcept('Heart failure'))
 
 # Functions which expect a SNOMEDconcept object, such as semanticType,
 # will automatically convert their argument to SNOMEDconcept using the
@@ -140,10 +144,10 @@ This package provides versions of the set functions 'setdiff', 'intersect' and '
 ```{r}
 # A list of concepts with a description containing the term 'heart'
 # (not that all synonyms are searched, not just the Fully Specified Names)
-heart <- as.SNOMEDconcept('Heart|heart', exact = FALSE, SNOMED = sampleSNOMED())
+heart <- SNOMEDconcept('Heart|heart', exact = FALSE, SNOMED = sampleSNOMED())
 
 # A list of concepts containing the term 'fail'
-fail <- as.SNOMEDconcept('Fail|fail', exact = FALSE, SNOMED = sampleSNOMED())
+fail <- SNOMEDconcept('Fail|fail', exact = FALSE, SNOMED = sampleSNOMED())
 
 # Concepts with heart and fail
 intersect(heart, fail)
@@ -202,7 +206,25 @@ relatedConcepts('Heart', 'Finding site', reverse = TRUE)
 SNOMED CT codelists
 -------------------
 
-The SNOMED CT codelist data type allows a list of SNOMED CT concepts to be curated. It allows codelists to be expressed in a contracted (simplified) form with descendants implicitly included.
+The SNOMED CT codelist data type allows a list of SNOMED CT concepts to be curated. It allows codelists to be expressed in three formats:
+
+- simple -- a simple list of concepts, one row per concept. It contains at least 2 columns: 'conceptId' and 'term'
+- tree -- a hierarchical list, in which each concept may be a single concept or include its descendants. It contains at least 4 columns: 'conceptId', 'term', 'include_desc' (whether descendants of the term are included) and 'included' (TRUE means it is an inclusion concept, FALSE means it is excluded)
+- exptree -- tree format codelists in which the descendants are also enumerated, and have a missing (NA) entry in the 'include_desc' column
+
+Tree format codelists may be more concise and easier to understand, but generally need to be converted to the 'simple' format (either using this package or equivalent functionality in a SNOMED CT server) in order to be used in practice, e.g. to run queries in a database. The result of the conversion may vary depending on the version of SNOMED CT used.
+
+SNOMEDcodelist objects can be constructed using the function SNOMEDcodelist. The function 'is.SNOMEDcodelist' checks if an object is a SNOMEDcodelist (and optionally whether it is of the specified type), and 'as.SNOMEDcodelist' converts an object to a SNOMEDcodelist if it is not already.
+
+The following items of metadata can be stored as part of a SNOMEDcodelist object:
+
+- codelist_name
+- author
+- version
+- date
+- sct_version (SNOMED CT version taken from the SNOMED environment that was used to create the codelist)
+- timestamp (automatically created)
+- format ('simple', 'tree' or 'exptree')
 
 ```{r}
 SNOMED <- sampleSNOMED()
@@ -210,27 +232,116 @@ SNOMED <- sampleSNOMED()
 # Create a codelist containing all the descendants of
 # the concept 'Heart failure'
 my_heart_failure_codelist <- SNOMEDcodelist(
-  as.SNOMEDconcept('Heart failure'), include_desc = TRUE)
+  SNOMEDconcept('Heart failure'), include_desc = TRUE,
+  format = 'simple', codelist_name = 'Heart failure')
 
 # Original codelist
 print(my_heart_failure_codelist)
 
-# Expanded codelist
-expanded <- expandSNOMED(my_heart_failure_codelist)
-print(expanded)
-
-# Contract codelist
-contracted <- contractSNOMED(expanded)
-print(contracted)
+# Convert to tree format
+tree <- SNOMEDcodelist(my_heart_failure_codelist, format = 'tree')
+print(tree)
 
 # Write out codelist to file
-write.csv(my_heart_failure_codelist, file = paste0(tempdir(),
-  '/hf_codes.csv'), row.names = FALSE)
+# Metadata are stored in a column named 'metadata'
+# export(tree, file = paste0(tempdir(), '/hf_codes.csv'))
 
-# Reload codelist from file
-reloaded_codelist <- as.SNOMEDcodelist(
-  data.table::fread(paste0(tempdir(), '/hf_codes.csv')))
-print(reloaded_codelist)
+# Reload codelist from file (including metadata)
+# reloaded_codelist <- as.SNOMEDcodelist(
+#  data.table::fread(paste0(tempdir(), '/hf_codes.csv')))
+# print(reloaded_codelist)
+```
+
+SNOMED CT simple refsets
+-----------------
+
+Refsets are sets of SNOMED CT terms (like codelists) that are supplied as part of the SNOMED CT distribution and are used for operational purposes. They are included in the REFSET table in the SNOMED dictionary. The getRefset function retrieves a particular refset. Each refset has a name which is a SNOMED CT concept of semantic type 'foundation metadata concept'.
+
+```{r}
+SNOMED = sampleSNOMED()
+
+# Obtain a list of available refsets with descriptions and counts
+merge(SNOMED$REFSET[, .N, by = list(conceptId = refsetId)],
+  SNOMED$DESCRIPTION[, list(conceptId, term)], by = 'conceptId')
+
+# Obtain a refset as a SNOMEDconcept vector
+renal_ref <- getRefset('Renal clinical finding simple reference set')
+
+# Find out whether a concept is included in a refset
+SNOMEDconcept('Renal failure') %in% renal_ref
+```
+ 
+
+Mapping between SNOMED CT and ICD-10 and OPCS4
+----------------------------------------------
+
+Mapping tables are provided in the international and UK SNOMED CT distributions for ICD-10. The UK distribution also includes mappings to CTV3, ICD Oncology (ICD-O) for body locations and OPCS4.
+
+These mappings are designed to enable clinical data entered using SNOMED CT to be converted to ICD-10 or OPCS4 in a semi-automated manner. This package includes functions to use the mappings to convert codelists from one format to another. Beware that these code systems are not equivalent, so it is necessary to check the output codelist to ensure that the mapping makes sense. For ICD-10 maps, only maps with mapCategoryId = 'Map source concept is properly classified' are retrieved.
+
+The table SIMPLEMAPS contains maps to CTV3 and ICD-O, whereas EXTENDEDMAPS contains mappings to ICD-10 and OPCS4. The EXTENDEDMAPS tables contains additional columns to define the type of mapping, but they are not used by the functions in this package.
+
+The `getMaps` function can be used to conveniently return the ICD-10 or OPCS4 codes associated with a SNOMED CT concept. Note that in the output data.table, the icd10_code or opcs4_code column is a list (because there may be multiple entries per SNOMED CT concept). To return each map on a separate row, use getMaps with the option `single_row_per_concept = FALSE`.
+
+```{r}
+# Example: creating an ICD-10 heart failure codelist using SNOMED CT
+SNOMED <- sampleSNOMED()
+
+my_heart_failure_codelist <- SNOMEDcodelist(
+  SNOMEDconcept('Heart failure'), include_desc = FALSE)
+
+getMaps(my_heart_failure_codelist, to = c('icd10'))
+
+my_pacemaker_codelist <- SNOMEDcodelist(
+  SNOMEDconcept('Implantation of cardiac pacemaker'),
+  include_desc = FALSE)
+
+getMaps(my_pacemaker_codelist, to = c('opcs4'))
+```
+
+Mapping between SNOMED CT and Read Clinical Terminology
+-------------------------------------------------------
+Prior to the introduction of SNOMED CT, the Read Clinical Terminology (version 2 or 3) were used to record clinical information in UK general practice. SNOMED CT terms are partly derived from Read, so all Read terms have a 'forward' mapping to an appropriate SNOMED CT term. NHS Digital provides a set of mappings to enable these conversions in clinical systems that are moving to SNOMED CT. These tables are available from
+the Technology Reference data Update Distribution \url{https://isd.digital.nhs.uk/trud3/user/guest/group/0/pack/9/subpack/9/releases}.
+
+This package provides the 'loadMAPS' function for loading the NHS Digital files into an R data.table, the 'MAPS' sample dataset and the 'getMaps' function for retrieving Read Clinical Terms Version 2 (Read 2) and 
+Clinical Terms Version 3 (CTV3) that map to a set of SNOMED CT concepts.
+
+These maps can be used for converting SNOMED CT codelists into Read 2 or CTV3 format for running queries, such as to characterise patient phenotypes or identify patient populations for research. They cannot be used in the reverse direction (to map a Read 2/CTV3 codelist to SNOMED CT) because some of the SNOMED CT terms will be missed out, and the list will be incomplete.
+
+Use the 'unlist' function, followed by deduplication, to create a table of concepts in another coding system mapped from SNOMED CT, as in the example below.
+
+```{r}
+# Example: creating a Read heart failure codelist using SNOMED CT
+SNOMED <- sampleSNOMED()
+data(READMAPS)
+
+# Start off with a SNOMED CT codelist containing the descendants of
+# the concept 'Heart failure'
+my_heart_failure_codelist <- SNOMEDcodelist(
+  SNOMEDconcept('Heart failure'), include_desc = TRUE)
+
+single_row_maps <- getMaps(my_heart_failure_codelist,
+  mappingtable = READMAPS, to = c('read2', 'ctv3'),
+  single_row_per_concept = TRUE)
+
+# Display the maps - one row per concept (long terms truncated)
+print(single_row_maps[, list(term = substr(term, 1, 10), read2_code,
+  ctv3_concept)])
+
+multi_row_maps <- getMaps(my_heart_failure_codelist,
+  mappingtable = READMAPS, to = 'read2',
+  single_row_per_concept = FALSE)
+
+# Display the maps - multiple rows per concept (long terms truncated)
+print(multi_row_maps[, list(term = substr(term, 1, 10), read2_code,
+  read2_term = substr(read2_term, 1, 30))])
+  
+# Create a standalone Read2 codelist
+read_codelist <- data.table::data.table(
+  code = unlist(single_row_maps$read2_code),
+  term = unlist(single_row_maps$read2_term))
+print(read_codelist[!duplicated(read_codelist)][order(code)])
 ```
 
 More information
@@ -238,7 +349,7 @@ More information
 
 For more information about SNOMED CT, visit the SNOMED CT international website: <https://www.snomed.org/>
 
-SNOMED CT (UK edition) can be downloaded from the NHS Digital site: <https://isd.digital.nhs.uk/trud3/user/guest/group/0/home>
+SNOMED CT (UK edition) can be downloaded from the NHS Digital site: <https://isd.digital.nhs.uk/trud/user/guest/group/0/home>
 
 The NHS Digital terminology browser can be used to search for terms interactively: <https://termbrowser.nhs.uk/>
 

@@ -1,6 +1,6 @@
 Package: Rdiagnosislist
 Title: Manipulate SNOMED CT Diagnosis Lists
-Version: 0.2
+Version: 1.0
 Authors@R: 
     person(given = "Anoop",
            family = "Shah",
@@ -20,11 +20,11 @@ Imports: data.table, bit64, methods
 Suggests: knitr, rmarkdown, testthat
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Author: Anoop Shah [aut, cre] (<https://orcid.org/0000-0002-8907-5724>)
 Maintainer: Anoop Shah <anoop@doctors.org.uk>
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2021-07-12 13:02:33 UTC; anoop
+Packaged: 2021-11-26 13:43:50 UTC; anoop
 Repository: CRAN
-Date/Publication: 2021-07-19 08:40:10 UTC
+Date/Publication: 2021-11-28 18:30:02 UTC
