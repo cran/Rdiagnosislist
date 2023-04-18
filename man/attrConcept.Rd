@@ -7,7 +7,8 @@
 attrConcept(
   conceptIds,
   SNOMED = getSNOMED(),
-  tables = c("RELATIONSHIP", "STATEDRELATIONSHIP")
+  tables = c("RELATIONSHIP", "STATEDRELATIONSHIP"),
+  active_only = TRUE
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ attrConcept(
 \item{SNOMED}{environment containing a SNOMED dictionary}
 
 \item{tables}{character vector of relationship tables to use}
+
+\item{active_only}{whether to return only active attributes}
 }
 \value{
 a data.table with the following columns: 

@@ -1,6 +1,43 @@
 =====================================================================
-Version 1.0
-Second release on CRAN
+Version 1.2 - Third release on CRAN
+=====================================================================
+
+BUG FIXES:
+- as.integer64.SNOMEDconcept now allows additional optional arguments,
+  like the generic as.integer64 function
+
+NEW FEATURES:
+- loadSNOMED also optionally loads history and query tables from a
+  SNOMED CT distribution
+- New function addInactiveConcepts to add inactive concepts to
+  codelists, using the history and query tables
+
+=====================================================================
+Version 1.1
+=====================================================================
+
+BUG FIXES:
+- Showing a concept description caused an error if there were
+  multiple descriptions for a concept and duplicate concepts in the
+  SNOMEDconcept vector
+- SNOMEDcodelist timestamps were set to the user-supplied date instead
+  of the system time
+- Error on exporting SNOMEDcodelists with single row maps that had NULL
+  values. Instead the NULLs are now zero-length character vectors, which
+  can be exported correctly with fwrite.
+- Ensure that SNOMED environment is passed from htmlCodelistHierarchy
+  to showCodelistHierarchy
+- Corrected bug in hasAttribute when SNOMED RELATIONSHIP table contains
+  duplicate source-type-destination triples (e.g. if some are inactive)
+
+CHANGES:
+- New vignette 'customHierarchy.Rmd' explaining how to create a custom
+  SNOMED-like database to enable the hierarchical view
+- Vignette shows how to obtain 'History of' terms for phenotyping
+  algorithms
+
+=====================================================================
+Version 1.0 - Second release on CRAN
 =====================================================================
 
 NEW FEATURES:
@@ -21,8 +58,7 @@ CHANGES:
 - Updated method of displaying SNOMED CT codelists
 
 =====================================================================
-Version 0.2
-Initial release on CRAN
+Version 0.2 - Initial release on CRAN
 =====================================================================
 
-Initial release
+- Initial release

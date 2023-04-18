@@ -1,13 +1,20 @@
 #' Load SNOMED CT files from a folder(s) into R data.table objects
 #'
-#' Identifies relevant SNOMED CT files from the 'Snapshot' of a 
-#' distribution and loads them into an R environment. Files from
+#' Identifies relevant SNOMED CT files from the folder structure of
+#' a SNOMED CT distribution. This includes the core 'Snapshot' tables
+#' mapping tables from the 'Refset' folder and the history substitution
+#' table and query table.
+#' The relevant tables are loaded into an R environment, which can be
+#' saved and then easily retrieved for future use. Files from
 #' two folders (e.g. International and UK versions) can be loaded
-#' together and appended.
+#' together, and are automatically appended by the function.
 #'
-#' These files are available from the NHS Digital Technology Reference
-#' Update Distribution:
+#' The SNOMED CT files are available from the NHS Digital Technology
+#' Reference Update Distribution:
 #' \url{https://isd.digital.nhs.uk/trud/user/guest/group/0/home}
+#'
+#' (Note: May 2022 - This function needs to be updated to use the 
+#' latest SNOMED CT TRUD versions including the SNOMED CT definitions).
 #'
 #' @param folders Vector of folder paths containing SNOMED CT files
 #' @param active_only Whether to limit to current (active) SNOMED CT
@@ -16,10 +23,10 @@
 #'   folder paths and expressed in the form: INT{date} & UK{date}
 #' @return An environment containing data.table objects: CONCEPT,
 #'   DESCRIPTION, RELATIONSHIP, STATEDRELATIONSHIP, REFSET,
-#'   SIMPLEMAP, EXTENDEDMAP
+#'   SIMPLEMAP, EXTENDEDMAP, HISTORY (optional), QUERY (optional)
 #' @export
 #' @seealso loadREADMAPS, CONCEPT, DESCRIPTION, RELATIONSHIP,
-#' STATEDRELATIONSHIP, REFSET, SIMPLEMAP, EXTENDEDMAP,
+#' STATEDRELATIONSHIP, REFSET, SIMPLEMAP, EXTENDEDMAP, QUERY, HISTORY
 #' sampleSNOMED, getSNOMED, exportSNOMEDenvir
 #' @examples
 #' # Create a TEST environment and load the sample dictionaries
@@ -48,13 +55,15 @@ loadSNOMED <- function(folders, active_only = TRUE,
 	id <- correlationId <- mapTarget <- pattern <- NULL
 
 	FILENAMES <- fread('pattern|table
-_Concept_Snapshot|CONCEPT
-_Description_Snapshot|DESCRIPTION
-_StatedRelationship_Snapshot|STATEDRELATIONSHIP
-_Relationship_Snapshot|RELATIONSHIP
-Refset_SimpleMapSnapshot|SIMPLEMAP
-Refset_ExtendedMapSnapshot|EXTENDEDMAP
-Refset_SimpleSnapshot|REFSET')
+_Concept_.*Snapshot|CONCEPT
+_Description_.*Snapshot|DESCRIPTION
+_StatedRelationship_.*Snapshot|STATEDRELATIONSHIP
+_Relationship_.*Snapshot|RELATIONSHIP
+Refset_SimpleMap.*Snapshot|SIMPLEMAP
+Refset_ExtendedMap.*Snapshot|EXTENDEDMAP
+Refset_Simple.*Snapshot|REFSET
+SNOMEDQueryTable|QUERY
+HistorySubstitutionTable_Concepts|HISTORY')
 
 	SNOMED <- new.env()
 	append <- FALSE
@@ -187,8 +196,8 @@ Refset_SimpleSnapshot|REFSET')
 	# Assign version
 	if (is.null(version)){
 		version <- paste(
-			paste0(ifelse(regexpr('International', folders), 
-			'Int', ifelse(regexpr('UKClinical', folders), 'UK', ''))),
+			paste0(ifelse(folders %like% 'International', 
+			'Int', ifelse(folders %like% 'UKClinical', 'UK', ''))),
 			sub('.*PRODUCTION_([0-9]{8})T.*', '\\1', folders),
 			collapse = ' & ')
 	}
@@ -214,20 +223,52 @@ Refset_SimpleSnapshot|REFSET')
 #' @return NULL 
 #' @export
 exportSNOMEDenvir <- function(SNOMED, folder){
-	data.table::fwrite(get('CONCEPT', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/_Concept_Snapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('DESCRIPTION', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/_Description_Snapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('RELATIONSHIP', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/_Relationship_Snapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('STATEDRELATIONSHIP', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/_StatedRelationship_Snapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('REFSET', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/Refset_SimpleSnapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('SIMPLEMAP', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/Refset_SimpleMapSnapshot.txt'), sep = '\t', quote = FALSE)
-	data.table::fwrite(get('EXTENDEDMAP', envir = SNOMED, inherits = FALSE),
-		paste0(folder, '/Refset_ExtendedMapSnapshot.txt'), sep = '\t', quote = FALSE)
+	data.table::fwrite(get('CONCEPT', envir = SNOMED, 
+		inherits = FALSE),
+		paste0(folder, '/_Concept_Snapshot.txt'), sep = '\t', 
+		quote = FALSE)
+	data.table::fwrite(get('DESCRIPTION', envir = SNOMED, 
+		inherits = FALSE),
+		paste0(folder, '/_Description_Snapshot.txt'), sep = '\t', 
+		quote = FALSE)
+	data.table::fwrite(get('RELATIONSHIP', envir = SNOMED, 
+		inherits = FALSE),
+		paste0(folder, '/_Relationship_Snapshot.txt'), sep = '\t', 
+		quote = FALSE)
+	data.table::fwrite(get('STATEDRELATIONSHIP', envir = SNOMED,
+		inherits = FALSE),
+		paste0(folder, '/_StatedRelationship_Snapshot.txt'), sep = '\t',
+		quote = FALSE)
+	if ('REFSET' %in% names(SNOMED)){
+		data.table::fwrite(get('REFSET', envir = SNOMED,
+			inherits = FALSE),
+			paste0(folder, '/Refset_SimpleSnapshot.txt'), sep = '\t',
+			quote = FALSE)
+	}
+	if ('SIMPLEMAP' %in% names(SNOMED)){
+		data.table::fwrite(get('SIMPLEMAP', envir = SNOMED,
+			inherits = FALSE),
+			paste0(folder, '/Refset_SimpleMapSnapshot.txt'), sep = '\t',
+			quote = FALSE)
+	}
+	if ('EXTENDEDMAP' %in% names(SNOMED)){
+		data.table::fwrite(get('EXTENDEDMAP', envir = SNOMED,
+			inherits = FALSE),
+			paste0(folder, '/Refset_ExtendedMapSnapshot.txt'),
+			sep = '\t', quote = FALSE)
+	}
+	if ('HISTORY' %in% names(SNOMED)){
+		data.table::fwrite(get('HISTORY', envir = SNOMED,
+			inherits = FALSE),
+			paste0(folder, '/HistorySubstitutionTable_Concepts.txt'),
+			sep = '\t', quote = FALSE)
+	}
+	if ('QUERY' %in% names(SNOMED)){
+		data.table::fwrite(get('QUERY', envir = SNOMED,
+			inherits = FALSE),
+			paste0(folder, '/SNOMEDQueryTable.txt'), sep = '\t',
+			quote = FALSE)
+	}
 	return(NULL)
 }
 
@@ -247,57 +288,90 @@ createSNOMEDindices <- function(SNOMED){
 	moduleId <- refsetId <- referencedComponentId <- NULL
 	mapTarget <- mapGroup <- mapPriority <- mapRule <- NULL
 	correlationId <- mapCategoryId <- NULL
+	supertypeId <- subtypeId <- provenance <- NULL
+	OLDCONCEPTID <- NEWCONCEPTID <- NULL
+
+	SNOMED$CONCEPT[, id := bit64::as.integer64(id)]
+	SNOMED$CONCEPT[, active := bit64::as.integer64(active)]
+	data.table::setkeyv(SNOMED$CONCEPT, 'id')
 	
-	data.table::setindex(SNOMED$CONCEPT, id)
-	data.table::setindex(SNOMED$CONCEPT, active)
+	SNOMED$DESCRIPTION[, id := bit64::as.integer64(id)]
+	SNOMED$DESCRIPTION[, conceptId := bit64::as.integer64(conceptId)]
+	SNOMED$DESCRIPTION[, typeId := bit64::as.integer64(typeId)]
+	SNOMED$DESCRIPTION[, term := as.character(term)]
+	SNOMED$DESCRIPTION[, active := as.logical(active)]
+	data.table::setkeyv(SNOMED$DESCRIPTION, 'id')
+	data.table::setindexv(SNOMED$DESCRIPTION, c('conceptId', 'typeId', 'term', 'active'))
+	data.table::setindexv(SNOMED$DESCRIPTION, c('term', 'active'))
+	data.table::setindexv(SNOMED$DESCRIPTION, c('typeId', 'active'))
+
+	SNOMED$STATEDRELATIONSHIP[, id := bit64::as.integer64(id)]
+	SNOMED$STATEDRELATIONSHIP[, sourceId := bit64::as.integer64(sourceId)]
+	SNOMED$STATEDRELATIONSHIP[, destinationId := bit64::as.integer64(destinationId)]
+	SNOMED$STATEDRELATIONSHIP[, typeId := bit64::as.integer64(typeId)]
+	SNOMED$STATEDRELATIONSHIP[, active := as.logical(active)]
+	data.table::setkeyv(SNOMED$STATEDRELATIONSHIP, c('sourceId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$STATEDRELATIONSHIP, c('destinationId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$STATEDRELATIONSHIP, c('sourceId', 'destinationId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$STATEDRELATIONSHIP, c('destinationId', 'sourceId', 'typeId', 'active'))
+
+	SNOMED$RELATIONSHIP[, id := bit64::as.integer64(id)]
+	SNOMED$RELATIONSHIP[, sourceId := bit64::as.integer64(sourceId)]
+	SNOMED$RELATIONSHIP[, destinationId := bit64::as.integer64(destinationId)]
+	SNOMED$RELATIONSHIP[, typeId := bit64::as.integer64(typeId)]
+	SNOMED$RELATIONSHIP[, active := as.logical(active)]
+	data.table::setkeyv(SNOMED$RELATIONSHIP, c('sourceId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$RELATIONSHIP, c('destinationId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$RELATIONSHIP, c('sourceId', 'destinationId', 'typeId', 'active'))
+	data.table::setindexv(SNOMED$RELATIONSHIP, c('destinationId', 'sourceId', 'typeId', 'active'))
+
+	if ('REFSET' %in% ls(SNOMED)){
+		SNOMED$REFSET[, moduleId := bit64::as.integer64(moduleId)]
+		SNOMED$REFSET[, refsetId := bit64::as.integer64(refsetId)]
+		SNOMED$REFSET[, referencedComponentId := bit64::as.integer64(referencedComponentId)]
+		SNOMED$REFSET[, active := as.logical(active)]
+		data.table::setkeyv(SNOMED$REFSET, c('refsetId', 'referencedComponentId'))
+	}
 	
-	data.table::setindex(SNOMED$DESCRIPTION, id)
-	data.table::setindex(SNOMED$DESCRIPTION, conceptId)
-	data.table::setindex(SNOMED$DESCRIPTION, typeId)
-	data.table::setindex(SNOMED$DESCRIPTION, term)
-	data.table::setindex(SNOMED$DESCRIPTION, active)
+	if ('SIMPLEMAP' %in% ls(SNOMED)){
+		SNOMED$SIMPLEMAP[, moduleId := bit64::as.integer64(moduleId)]
+		SNOMED$SIMPLEMAP[, refsetId := bit64::as.integer64(refsetId)]
+		SNOMED$SIMPLEMAP[, referencedComponentId := bit64::as.integer64(referencedComponentId)]
+		SNOMED$SIMPLEMAP[, mapTarget := as.character(mapTarget)]
+		SNOMED$SIMPLEMAP[, active := as.logical(active)]
+		data.table::setkeyv(SNOMED$SIMPLEMAP, c('refsetId', 'mapTarget', 'referencedComponentId'))
+	}
 
-	data.table::setindex(SNOMED$STATEDRELATIONSHIP, id)
-	data.table::setindex(SNOMED$STATEDRELATIONSHIP, sourceId)
-	data.table::setindex(SNOMED$STATEDRELATIONSHIP, destinationId)
-	data.table::setindex(SNOMED$STATEDRELATIONSHIP, typeId)
-	data.table::setindex(SNOMED$STATEDRELATIONSHIP, active)
+	if ('EXTENDEDMAP' %in% ls(SNOMED)){	
+		SNOMED$EXTENDEDMAP[, moduleId := bit64::as.integer64(moduleId)]
+		SNOMED$EXTENDEDMAP[, refsetId := bit64::as.integer64(refsetId)]
+		SNOMED$EXTENDEDMAP[, referencedComponentId := bit64::as.integer64(referencedComponentId)]
+		SNOMED$EXTENDEDMAP[, mapGroup := as.integer(mapGroup)]
+		SNOMED$EXTENDEDMAP[, mapPriority := as.integer(mapPriority)]
+		SNOMED$EXTENDEDMAP[, mapRule := as.character(mapRule)]
+		SNOMED$EXTENDEDMAP[, mapTarget := as.character(mapTarget)]
+		# data.table::setindex(SNOMED$EXTENDEDMAP, correlationId)
+		# not using correlationId because they are all the same
+		SNOMED$EXTENDEDMAP[, mapCategoryId := bit64::as.integer64(mapCategoryId)]
+		SNOMED$EXTENDEDMAP[, active := as.logical(active)]
+		data.table::setkeyv(SNOMED$EXTENDEDMAP, c('mapPriority', 'mapCategoryId', 'refsetId',
+			'referencedComponentId'))
+	}
 
-	data.table::setindex(SNOMED$RELATIONSHIP, id)
-	data.table::setindex(SNOMED$RELATIONSHIP, sourceId)
-	data.table::setindex(SNOMED$RELATIONSHIP, destinationId)
-	data.table::setindex(SNOMED$RELATIONSHIP, typeId)
-	data.table::setindex(SNOMED$RELATIONSHIP, active)
+	if ('QUERY' %in% ls(SNOMED)){	
+		SNOMED$QUERY[, supertypeId := bit64::as.integer64(supertypeId)]
+		SNOMED$QUERY[, subtypeId := bit64::as.integer64(subtypeId)]
+		SNOMED$QUERY[, provenance := as.integer(provenance)]
+		data.table::setkeyv(SNOMED$QUERY, c('supertypeId', 'subtypeId'))
+	}
 
-	# data.table::setindex(SNOMED$REFSET, id)
-	# not including id to save space
-	data.table::setindex(SNOMED$REFSET, moduleId)
-	data.table::setindex(SNOMED$REFSET, refsetId)
-	data.table::setindex(SNOMED$REFSET, referencedComponentId)
-	data.table::setindex(SNOMED$REFSET, active)
-
-	# data.table::setindex(SNOMED$SIMPLEMAP, id)
-	# not including id to save space
-	data.table::setindex(SNOMED$SIMPLEMAP, moduleId)
-	data.table::setindex(SNOMED$SIMPLEMAP, refsetId)
-	data.table::setindex(SNOMED$SIMPLEMAP, referencedComponentId)
-	data.table::setindex(SNOMED$SIMPLEMAP, mapTarget)
-	data.table::setindex(SNOMED$SIMPLEMAP, active)
-
-	# data.table::setindex(SNOMED$EXTENDEDMAP, id)
-	# not including id to save space
-	data.table::setindex(SNOMED$EXTENDEDMAP, moduleId)
-	data.table::setindex(SNOMED$EXTENDEDMAP, refsetId)
-	data.table::setindex(SNOMED$EXTENDEDMAP, referencedComponentId)
-	data.table::setindex(SNOMED$EXTENDEDMAP, mapGroup)
-	data.table::setindex(SNOMED$EXTENDEDMAP, mapPriority)
-	data.table::setindex(SNOMED$EXTENDEDMAP, mapRule)
-	data.table::setindex(SNOMED$EXTENDEDMAP, mapTarget)
-	# data.table::setindex(SNOMED$EXTENDEDMAP, correlationId)
-	# not using correlationId because they are all the same
-	data.table::setindex(SNOMED$EXTENDEDMAP, mapCategoryId)
-	data.table::setindex(SNOMED$EXTENDEDMAP, active)
-
+	if ('HISTORY' %in% ls(SNOMED)){	
+		SNOMED$HISTORY[, OLDCONCEPTID := bit64::as.integer64(OLDCONCEPTID)]
+		SNOMED$HISTORY[, NEWCONCEPTID := bit64::as.integer64(NEWCONCEPTID)]
+		data.table::setkeyv(SNOMED$HISTORY, c('NEWCONCEPTID', 'OLDCONCEPTID'))
+		data.table::setindexv(SNOMED$HISTORY, 'OLDCONCEPTID')
+	}
+	
 	return(SNOMED)
 }
 
@@ -312,7 +386,7 @@ createSNOMEDindices <- function(SNOMED){
 #'   and a list named 'metadata'
 #' @export
 #' @seealso CONCEPT, DESCRIPTION, RELATIONSHIP, STATEDRELATIONSHIP, 
-#' REFSET, SIMPLEMAP, EXTENDEDMAP, loadSNOMED, sampleSNOMED
+#' REFSET, SIMPLEMAP, EXTENDEDMAP, HISTORY, QUERY, loadSNOMED, sampleSNOMED
 #' @examples
 #' TEST <- sampleSNOMED()
 #' inactiveIncluded(TEST)
@@ -329,6 +403,8 @@ sampleSNOMED <- function(){
 	data(REFSET, envir = SNOMED)
 	data(SIMPLEMAP, envir = SNOMED)
 	data(EXTENDEDMAP, envir = SNOMED)
+	data(HISTORY, envir = SNOMED)
+	data(QUERY, envir = SNOMED)
 	SNOMED <- createSNOMEDindices(SNOMED)
 	assign('metadata', value = list(source = 'sample',
 		active_only = FALSE, version = 'Sample'), envir = SNOMED)
@@ -376,13 +452,19 @@ getSNOMED <- function(SNOMEDname = 'SNOMED'){
 		stop('No table named DESCRIPTION in SNOMED environment')
 	}
 	if (is.null(SNOMED$REFSET)){
-		stop('No table named REFSET in SNOMED environment')
+		warning('No table named REFSET in SNOMED environment')
 	}
 	if (is.null(SNOMED$SIMPLEMAP)){
-		stop('No table named SIMPLEMAP in SNOMED environment')
+		warning('No table named SIMPLEMAP in SNOMED environment')
 	}
 	if (is.null(SNOMED$EXTENDEDMAP)){
-		stop('No table named EXTENDEDMAP in SNOMED environment')
+		warning('No table named EXTENDEDMAP in SNOMED environment')
+	}
+	if (is.null(SNOMED$HISTORY)){
+		warning('No table named HISTORY in SNOMED environment')
+	}
+	if (is.null(SNOMED$QUERY)){
+		warning('No table named QUERY in SNOMED environment')
 	}
 	# Return the retrieved environment
 	SNOMED
@@ -479,6 +561,7 @@ loadREADMAPS <- function(not_assured_rcsctmap_uk,
 		V3MAPS[, list(ctv3_concept = list(ctv3_concept),
 		ctv3_termid = list(ctv3_termid)),
 		by = conceptId], by = 'conceptId')
+	setkeyv(READMAPS, 'conceptId')
 	READMAPS
 }
 

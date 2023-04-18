@@ -26,7 +26,7 @@ The SNOMED dictionaries are contained within four key tables:
 - STATEDRELATIONSHIP - directly stated relationships
 - RELATIONSHIP - relationships between terms inferred from other relationships
 
-The following additional tables are also used 
+The following additional tables are also included: 
 - SIMPLEMAP - Maps to Clinical Terms Version 3 and some other terms (e.g. COVID-19 terms)
 - EXTENDEDMAP - Maps to ICD-10 and OPCS4
 - REFSET - Sets of SNOMED CT concepts used for specific clinical / operational purposes 
@@ -42,6 +42,8 @@ Loading the SNOMED CT dictionaries
 ----------------------------------
 
 This package contains functions to import a set of SNOMED CT release files which should be obtained from NHS Digital TRUD (https://isd.digital.nhs.uk/trud/user/guest/group/0/home). The International and UK release files are provided in two separate downloads, and need to be combined to create the  whole dictionary. This can be done using the loadSNOMED() function and specifying a vector of folder paths to load.
+
+The SNOMED CT UK drug extension is available as a separate file and can (in theory) be added to the SNOMED environment, but this has not yet been tested.
   
 For most users the 'Snapshot' files, containing the current versions of the entries, will be the most useful, and these are loaded by loadSNOMED() function. The  sample dictionaries in this package are also based on the Snapshot file format. The 'Delta' files contain changes since the previous version, and the 'Full' files contain a history of the changes to each entry.
 
@@ -251,6 +253,83 @@ print(tree)
 #  data.table::fread(paste0(tempdir(), '/hf_codes.csv')))
 # print(reloaded_codelist)
 ```
+
+'History of' SNOMED CT concepts
+------------------
+
+Some SNOMED CT concepts state 'History of' a disorder or procedure, such as 
+'History of heart failure'. These concepts may be important to include in a search for patients with a past history of a condition, which may be recorded using either the disorder concept or a history concept.
+
+'History of' concepts are of the semantic type 'Situation' with attributes:
+
+- Temporal context = In the past
+- Associated finding = concept ID of the historic condition
+- Finding context = Known present
+- Subject relationship context = Subject of record
+
+'Suspected' concepts are also of the semantic type 'Situation' and have the following attributes:
+
+- Temporal context = Current or specified time
+- Associated finding = concept ID of the condition that is suspected
+- Finding context = Suspected
+- Subject relationship context = Subject of record
+
+The sample SNOMED dictionary included in this package does not include all these attributes, so the following examples require a full SNOMED CT dictionary to be loaded.
+
+```
+find_historic <- function(x, SNOMED){
+  # returns a vector of concepts which are historic versions of
+  # the supplied concepts
+  # Arguments: x = a SNOMEDconcept vector
+  #            SNOMED = a SNOMED environment
+
+  R <- unique(relatedConcepts(x,
+    type = SNOMEDconcept('Associated finding'), reverse = TRUE))
+  Rpast = hasAttributes(R,
+    typeIds = SNOMEDconcept('Temporal context'),
+    destinationIds = SNOMEDconcept('In the past'), SNOMED = SNOMED)
+  Rknown = hasAttributes(R,
+    typeIds = SNOMEDconcept('Finding context'),
+    destinationIds = SNOMEDconcept('Known present'), SNOMED = SNOMED)
+  Rsubj = hasAttributes(R,
+    typeIds = SNOMEDconcept('Subject relationship context'),
+    destinationIds = SNOMEDconcept('Subject of record'), SNOMED = SNOMED)
+  
+  R[Rpast & Rknown & Rsubj]
+}
+
+find_suspected <- function(x, SNOMED){
+  # returns a vector of concepts which are suspected versions of
+  # the supplied concepts
+  # Arguments: x = a SNOMEDconcept vector
+  #            SNOMED = a SNOMED environment
+
+  R <- unique(relatedConcepts(x,
+    type = SNOMEDconcept('Associated finding'), reverse = TRUE))
+  Rcurrent = hasAttributes(R,
+    typeIds = SNOMEDconcept('Temporal context'),
+    destinationIds = SNOMEDconcept('Current or specified time'),
+    SNOMED = SNOMED)
+  Rsuspected = hasAttributes(R,
+    typeIds = SNOMEDconcept('Finding context'),
+    destinationIds = SNOMEDconcept('Suspected'), SNOMED = SNOMED)
+  Rsubj = hasAttributes(R,
+    typeIds = SNOMEDconcept('Subject relationship context'),
+    destinationIds = SNOMEDconcept('Subject of record'), SNOMED = SNOMED)
+  
+  R[Rcurrent & Rsuspected & Rsubj]
+}
+
+# Example (using full SNOMED CT dictionary):
+#
+# > find_historic(SNOMEDconcept('Heart failure'), SNOMED)
+# [1] "309634009 | History of heart failure in last year (situation)"
+# [2] "161505003 | History of heart failure (situation)"
+#             
+# > find_suspected(SNOMEDconcept('Heart failure'), SNOMED)
+# [1] "394887005 | Suspected heart failure (situation)" 
+```
+
 
 SNOMED CT simple refsets
 -----------------

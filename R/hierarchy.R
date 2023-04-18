@@ -216,6 +216,8 @@ descendants <- function(conceptIds, include_self = FALSE,
 #'   for renationship types, recycled if necessary.
 #'   Defaults to 116680003 = 'Is a' (child/parent)
 #' @param SNOMED environment containing a SNOMED dictionary
+#' @param active_only whether only active relationships
+#'   should be considered, default TRUE
 #' @param tables character vector of relationship tables to use
 #' @return a vector of Booleans stating whether the attribute exists
 #' @export
@@ -228,16 +230,31 @@ descendants <- function(conceptIds, include_self = FALSE,
 hasAttributes <- function(sourceIds, destinationIds,
 	typeIds = bit64::as.integer64('116680003'),
 	SNOMED = getSNOMED(), 
-	tables = c('RELATIONSHIP', 'STATEDRELATIONSHIP')){
-	TOMATCH <- data.table(sourceId = as.SNOMEDconcept(sourceIds),
-		destinationId = as.SNOMEDconcept(destinationIds),
-		typeId = as.SNOMEDconcept(typeIds))
+	tables = c('RELATIONSHIP', 'STATEDRELATIONSHIP'),
+	active_only = TRUE){
+	IN <- data.table(
+		sourceId = as.SNOMEDconcept(sourceIds, SNOMED = SNOMED),
+		destinationId = as.SNOMEDconcept(destinationIds, SNOMED = SNOMED),
+		typeId = as.SNOMEDconcept(typeIds, SNOMED = SNOMED))
+	TOMATCH <- IN[!duplicated(IN)]
+	
+	sourceId <- destinationId <- typeId <- active <- NULL
 	
 	# add matches and combine Boolean
 	addRelationship <- function(tablename, out){
 		TABLE <- as.data.table(get(tablename, envir = SNOMED))
-		out | !is.na(TABLE[TOMATCH,
-			on = c('sourceId', 'destinationId', 'typeId')]$id)
+		if (active_only & inactiveIncluded(SNOMED)){
+			TEMP <- merge(TOMATCH, TABLE[active == TRUE,
+				list(sourceId, destinationId, typeId, found = TRUE)],
+				by = c('sourceId', 'destinationId', 'typeId'))
+		} else {
+			TEMP <- merge(TOMATCH, TABLE[,
+				list(sourceId, destinationId, typeId, found = TRUE)],
+				by = c('sourceId', 'destinationId', 'typeId'))
+		}
+		TEMP <- TEMP[!duplicated(TEMP)]
+		out | !is.na(TEMP[IN, on = c('sourceId', 'destinationId',
+			'typeId')]$found)
 	}
 	
 	# Blank output logical vector
@@ -258,6 +275,7 @@ hasAttributes <- function(sourceIds, destinationIds,
 #' @param conceptIds character or integer64 vector of SNOMED concept IDs
 #' @param SNOMED environment containing a SNOMED dictionary
 #' @param tables character vector of relationship tables to use
+#' @param active_only whether to return only active attributes
 #' @return a data.table with the following columns: 
 #'   sourceId (concept ID of source for relationship),
 #'   destinationId (concept ID of source for relationship),
@@ -271,11 +289,12 @@ hasAttributes <- function(sourceIds, destinationIds,
 #' attrConcept(as.SNOMEDconcept('Heart failure'))
 attrConcept <- function(conceptIds,
 	SNOMED = getSNOMED(), 
-	tables = c('RELATIONSHIP', 'STATEDRELATIONSHIP')){
+	tables = c('RELATIONSHIP', 'STATEDRELATIONSHIP'),
+	active_only = TRUE){
 	# Retrieves a table of attributes for a given set of concepts
 	# add matches and combine Boolean
 	sourceId <- destinationId <- typeId <- relationshipGroup <- NULL
-	sourceDesc <- destinationDesc <- typeDesc <- NULL
+	sourceDesc <- destinationDesc <- typeDesc <- active <- NULL
 
 	MATCHSOURCE <- data.table(sourceId =
 		as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
@@ -283,13 +302,16 @@ attrConcept <- function(conceptIds,
 		as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
 	OUT <- rbind(rbindlist(lapply(tables, function(table){
 			get(table, envir = SNOMED)[MATCHSOURCE, on = 'sourceId',
-			list(sourceId, destinationId, typeId, relationshipGroup)]
+			list(sourceId, destinationId, typeId, relationshipGroup, active)]
 		}), use.names = TRUE, fill = TRUE),
 		rbindlist(lapply(tables, function(table){
 			get(table, envir = SNOMED)[MATCHDEST, on = 'destinationId',
-			list(sourceId, destinationId, typeId, relationshipGroup)]
+			list(sourceId, destinationId, typeId, relationshipGroup, active)]
 		}), use.names = TRUE, fill = TRUE)
 	)
+	if (active_only == TRUE & inactiveIncluded(SNOMED)){
+		OUT <- OUT[active == TRUE]
+	}
 	OUT[, sourceDesc := description(sourceId, SNOMED = SNOMED)$term]
 	OUT[, destinationDesc := description(destinationId,
 		SNOMED = SNOMED)$term]
@@ -314,7 +336,8 @@ semanticType <- function(conceptIds,
 	
 	conceptIds <- as.SNOMEDconcept(conceptIds, SNOMED = SNOMED)
 	DESC <- description(conceptIds, SNOMED = SNOMED)
-	DESC[, tag := sub('^.*\\(([[:alnum:]\\/\\+ ]+)\\)$', '\\1', term)]
+	DESC[, tag := ifelse(term %like% '^.*\\(([[:alnum:]\\/\\+ ]+)\\)$',
+		sub('^.*\\(([[:alnum:]\\/\\+ ]+)\\)$', '\\1', term), '')]
 	return(DESC$tag)
 }
 
@@ -329,6 +352,8 @@ semanticType <- function(conceptIds,
 #' forms for display, e.g. 'Heart failure' instead of 'Heart failure
 #' with reduced ejection fraction'.
 #'
+#' This function is intended for use with active SNOMED CT concepts only.
+#'
 #' @param conceptIds character or integer64 vector of SNOMED concept IDs
 #'   for concepts for which an ancestor is sought
 #' @param ancestorIds character or integer64 vector of SNOMED concept IDs
@@ -338,7 +363,7 @@ semanticType <- function(conceptIds,
 #' @return a data.table with the following columns:
 #'   originalId (integer64) = original conceptId,
 #'   ancestorId (integer64) = closest single ancestor, or original
-#'   concept ID if no ancestor is included in the 
+#'   concept ID if no ancestor is included among ancestorIds
 #'   
 #' @export
 #' @examples

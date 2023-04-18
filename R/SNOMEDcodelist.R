@@ -7,8 +7,12 @@
 #' 
 #' Input is a data.frame or data.table with column names 'conceptId'
 #' and optionally 'include_desc', which is FALSE by default, but if
-#' TRUE then the codelist automatically includes all descendants of that
-#' concept.
+#' TRUE then the codelist automatically includes all active descendants
+#' of that concept.
+#'
+#' If the codelist is intended to contain inactive concepts, it can
+#' only exist in the 'simple' format. Inactive concepts will be lost if
+#' the codelist is converted between formats.
 #'
 #' as.SNOMEDcodelist converts its argument into a SNOMEDcodelist but
 #'   leaves it unchanged if it is already a SNOMEDcodelist.
@@ -35,10 +39,11 @@
 #' @param SNOMED environment containing a SNOMED dictionary
 #' @param show_excluded_descendants Whether to show excluded
 #'   descendants alongside the codes included in the codelist (for
-#'   a 'tree' or 'expandedtree' format codelist).
+#'   a 'tree' or 'exptree' format codelist).
 #' @param ... other arguments to pass to SNOMEDcodelist
 #' @return An object of class 'SNOMEDcodelist'
 #' @family SNOMEDcodelist functions
+#' @seealso htmlCodelistHierarchy
 #' @export
 #' @examples
 #' SNOMED <- sampleSNOMED()
@@ -176,7 +181,7 @@ SNOMEDcodelist <- function(x, include_desc = FALSE,
 	# 2. CONVERT TO DESIRED FORMAT
 	if (show_excluded_descendants == TRUE &
 		format %in% c('tree', 'exptree')){
-		# Add non-included descendants (for tree format codelists)
+		# Add non-included active descendants (for tree format codelists)
 		desc <- setdiff(descendants(out$conceptId, SNOMED = SNOMED),
 			out$conceptId)
 		# Add these concepts to the inclusion and exclusion lists
@@ -263,11 +268,11 @@ SNOMEDcodelist <- function(x, include_desc = FALSE,
 		'data.table', 'data.frame'))
 	
 	# 3. SET METADATA
-	data.table::setattr(out, 'codelist_name', codelist_name)
-	data.table::setattr(out, 'version', version)
-	data.table::setattr(out, 'author', author)
-	data.table::setattr(out, 'date', date)
-	data.table::setattr(out, 'timestamp', date)
+	data.table::setattr(out, 'codelist_name', as.character(codelist_name))
+	data.table::setattr(out, 'version', as.character(version))
+	data.table::setattr(out, 'author', as.character(author))
+	data.table::setattr(out, 'date', as.character(date))
+	data.table::setattr(out, 'timestamp', Sys.time())
 	data.table::setattr(out, 'sct_version', SNOMED$metadata$version)
 	data.table::setattr(out, 'format', format)
 	data.table::setkeyv(out, 'conceptId')
@@ -285,9 +290,9 @@ as.data.frame.SNOMEDconcept <- function(x, ...){
 #' @rdname SNOMEDconcept
 #' @family SNOMEDconcept functions
 #' @export
-as.integer64.SNOMEDconcept <- function(x){
+as.integer64.SNOMEDconcept <- function(x, ...){
 	class(x) <- 'integer64'
-	bit64::as.integer64(x)
+	bit64::as.integer64(x, ...)
 }
 
 #' @rdname SNOMEDcodelist
@@ -367,7 +372,7 @@ showCodelistHierarchy <- function(x, SNOMED = getSNOMED(),
 	allthisrowid <- alldescendantrowid <- NULL
 	
 	# Ensure that x is a SNOMEDcodelist
-	x <- as.SNOMEDcodelist(x, ...)
+	x <- as.SNOMEDcodelist(x, SNOMED = SNOMED, ...)
 	
 	out <- expandSNOMED(data.table::copy(x), SNOMED = SNOMED)
 	out[, included := TRUE]
@@ -387,7 +392,7 @@ showCodelistHierarchy <- function(x, SNOMED = getSNOMED(),
 				desc[, included := FALSE]
 				out <- rbind(out, desc, fill = TRUE)
 			} else {
-				desc <- as.SNOMEDcodelist(setdiff(
+				desc <- SNOMEDcodelist(setdiff(
 					children(out$conceptId, SNOMED = SNOMED),
 					out$conceptId), include_desc = FALSE)
 				if (nrow(desc) <= max_excluded_descendants){
@@ -690,6 +695,65 @@ print.SNOMEDcodelist <- function(x, ...){
 	invisible(x)
 }
 
+#' Add inactive concepts to a SNOMEDcodelist or SNOMEDconcept vector
+#'
+#' Adds SNOMED concepts linked by the QUERY or HISTORY tables
+#' that are mapped to or descendants of concepts in a SNOMEDcodelist
+#' or a SNOMEDconcept vector. If a SNOMEDcodelist, it is automatically
+#' converted to the 'simple' format (all items enumerated).
+#'
+#' It is recommended to use this function to convert a reference
+#' into a codelist for running a query against an electronic health
+#' record database which might contain historic SNOMED CT concepts.
+#'
+#' @param x SNOMEDcodelist or SNOMEDconcept object
+#' @param provenance vector of provenance values to use
+#' @param SNOMED SNOMED environment containing HISTORY and QUERY tables
+#' @return SNOMEDcodelist or SNOMEDconcept with linked inactive concepts included
+#' @family SNOMEDcodelist functions
+#' @export
+addInactiveConcepts <- function(x, provenance = 0:3, SNOMED = getSNOMED()){
+	supertypeId <- NEWCONCEPTID <- NULL
+
+	if (is.SNOMEDconcept(x)){
+		if ('QUERY' %in% names(SNOMED)){
+			x <- union(x, as.SNOMEDconcept(SNOMED$QUERY[supertypeId %in% x &
+				provenance %in% provenance]$subtypeId))
+		} else {
+			warning('SNOMED does not contain a query table')
+		}
+		if ('HISTORY' %in% names(SNOMED)){
+			x <- union(x, as.SNOMEDconcept(SNOMED$HISTORY[
+				NEWCONCEPTID %in% x]$OLDCONCEPTID))
+		} else {
+			warning('SNOMED does not contain a history table')
+		}
+		return(x)
+	} else if (is.SNOMEDcodelist(x)){
+		x <- as.SNOMEDcodelist(x, format = 'simple')
+		extra_concepts <- setdiff(addInactiveConcepts(
+			as.SNOMEDconcept(x$conceptId),
+			provenance = provenance, SNOMED = getSNOMED()), x$conceptId)
+		out <- rbind(x, data.table(conceptId = extra_concepts,
+			term = description(extra_concepts)$term), fill = TRUE)
+		# Ensure metadata is not lost in the conversion
+		data.table::setattr(out, 'codelist_name', attr(x, 'codelist_name'))
+		data.table::setattr(out, 'version', attr(x, 'version'))
+		data.table::setattr(out, 'author', attr(x, 'author'))
+		data.table::setattr(out, 'date', attr(x, 'date'))
+		data.table::setattr(out, 'timestamp', Sys.time())
+		data.table::setattr(out, 'sct_version', SNOMED$metadata$version)
+		data.table::setattr(out, 'format', 'simple')
+		data.table::setkeyv(out, 'conceptId')
+		return(out)
+	} else {
+		warning('x is not a SNOMEDconcept or SNOMEDcodelist')
+		return(x)
+	}
+}
+
+
+
 # Internal function
 padTo <- function(string, length){
 	# Returns a character vector with strings padded to a particular length
@@ -759,4 +823,3 @@ makeCodelistFilename <- function(x){
 	paste0(attr(x, 'codelist_name'), '.SNOMEDcodelist.',
 		as.character(floor(as.numeric(attr(x, 'version')))), '.csv')
 }
-
