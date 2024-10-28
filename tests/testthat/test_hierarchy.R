@@ -13,6 +13,15 @@ test_that('Related concepts', {
 		as.SNOMEDconcept('Heart structure', SNOMED = sampleSNOMED()))
 })
 
+test_that('createTransitive', {
+	TRANSITIVE <- createTransitive(
+		descendants('Heart failure', SNOMED = sampleSNOMED()),
+		SNOMED = sampleSNOMED())
+	ahf <- as.SNOMEDconcept('Acute heart failure', SNOMED = sampleSNOMED())
+	expect_equal(descendants(ahf, SNOMED = sampleSNOMED()),
+		descendants(ahf, SNOMED = sampleSNOMED(), TRANSITIVE = TRANSITIVE))
+})
+
 test_that('hasAttributes', {
 	expect_equal(hasAttributes(
 		as.SNOMEDconcept(c('Heart failure', 'Acute heart failure'),
@@ -34,10 +43,11 @@ test_that('attrConcept', {
 })
 
 test_that('Ancestors', {
-	expect_equal(ancestors(as.SNOMEDconcept(c('Heart failure',
+	expect_true(all(as.SNOMEDconcept(c('105981003', '127337006'),
+		SNOMED = sampleSNOMED()) %in%
+		ancestors(as.SNOMEDconcept(c('Heart failure',
 		'Acute heart failure'), SNOMED = sampleSNOMED()),
-		SNOMED = sampleSNOMED()),
-		as.SNOMEDconcept(c('105981003', '127337006')))
+		SNOMED = sampleSNOMED())))
 })
 
 test_that('Semantic types', {

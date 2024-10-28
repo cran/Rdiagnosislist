@@ -22,33 +22,41 @@
 #' my_concepts <- SNOMEDconcept('Acute heart failure')
 #' my_codelist <- SNOMEDcodelist(data.frame(conceptId = my_concepts,
 #'   include_desc = TRUE))
+#' my_codelist <- getMaps(my_codelist, to = 'icd10')
 #' htmlCodelistHierarchy(my_codelist, file = paste0(tempdir(),
-#'   'codelist.html'))
+#'   '/codelist.html'), extracols = 'icd10_code')
 #' # The codelist.html file can now be viewed in a web browser
 #'
 #' # Clean up temporary file
-#' file.remove(paste0(tempdir(), 'codelist.html'))
+#' file.remove(paste0(tempdir(), '/codelist.html'))
 htmlCodelistHierarchy <- function(x, file = NULL, title = NULL,
 	description = NULL, extracols = NULL, SNOMED = getSNOMED(), ...){
 
 	included <- out <- rowid <- conceptId <- NULL
 	roworder <- checked <- NULL
 	
-	if (!('codelistHierarchy' %in% class(x))){
-		x <- showCodelistHierarchy(as.SNOMEDcodelist(x, SNOMED = SNOMED,
-			...), SNOMED = SNOMED)
-	}
-	x <- data.table::copy(x)[order(roworder)]
+	x <- data.table::copy(x)
 	if (!is.null(extracols)){
 		extracols <- intersect(colnames(x), extracols)
 	}
 	if (length(extracols) == 0){
 		extracols <- NULL
+	} else {
+		for (i in extracols){
+			if (is.list(x[[i]])){
+				x[, (i) := sapply(x[[i]],
+					function(z) paste(z, collapse = ','))]
+			}
+		}
 	}
-
+	if (!('codelistHierarchy' %in% class(x))){
+		x <- showCodelistHierarchy(as.SNOMEDcodelist(x, SNOMED = SNOMED,
+			...), SNOMED = SNOMED)
+	}
+	x <- x[order(roworder)]
 	x[, checked := as.logical(NA)]
 	x[, comment := '...']
-# TODO
+
 # Columns:
 # 1. 'Expand/Contract' button (toggle) with pressed / unpressed style
 # 2. Term (red if deselected, bold if has children)

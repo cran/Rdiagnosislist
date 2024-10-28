@@ -12,66 +12,75 @@
 
 <meta name="author" content="Anoop Shah" />
 
-<meta name="date" content="2023-04-18" />
+<meta name="date" content="2024-10-28" />
 
 <title>Converting and creating codelists</title>
 
 
-<style type="text/css">
-  code{white-space: pre-wrap;}
-  span.smallcaps{font-variant: small-caps;}
-  span.underline{text-decoration: underline;}
-  div.column{display: inline-block; vertical-align: top; width: 50%;}
-  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-  ul.task-list{list-style: none;}
-    </style>
 
-
-
-<style type="text/css">
-  code {
-    white-space: pre;
-  }
-  .sourceCode {
-    overflow: visible;
-  }
-</style>
+<style type="text/css">code{white-space: pre;}</style>
 <style type="text/css" data-origin="pandoc">
-div.sourceCode { overflow-x: auto; }
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code > span.dt { color: #902000; } /* DataType */
-code > span.dv { color: #40a070; } /* DecVal */
-code > span.bn { color: #40a070; } /* BaseN */
-code > span.fl { color: #40a070; } /* Float */
-code > span.ch { color: #4070a0; } /* Char */
-code > span.st { color: #4070a0; } /* String */
-code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code > span.ot { color: #007020; } /* Other */
-code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code > span.fu { color: #06287e; } /* Function */
-code > span.er { color: #ff0000; font-weight: bold; } /* Error */
-code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-code > span.cn { color: #880000; } /* Constant */
-code > span.sc { color: #4070a0; } /* SpecialChar */
-code > span.vs { color: #4070a0; } /* VerbatimString */
-code > span.ss { color: #bb6688; } /* SpecialString */
-code > span.im { } /* Import */
-code > span.va { color: #19177c; } /* Variable */
-code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code > span.op { color: #666666; } /* Operator */
-code > span.bu { } /* BuiltIn */
-code > span.ex { } /* Extension */
-code > span.pp { color: #bc7a00; } /* Preprocessor */
-code > span.at { color: #7d9029; } /* Attribute */
-code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 
 </style>
 <script>
@@ -81,20 +90,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
   for (var i = 0; i < sheets.length; i++) {
     if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
     try { var rules = sheets[i].cssRules; } catch (e) { continue; }
-    var j = 0;
-    while (j < rules.length) {
+    for (var j = 0; j < rules.length; j++) {
       var rule = rules[j];
       // check if there is a div.sourceCode rule
-      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
-        j++;
-        continue;
-      }
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' && rule.style.backgroundColor === '') {
-        j++;
-        continue;
-      }
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -105,8 +107,187 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
 
-<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
 
 
 
@@ -120,34 +301,36 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Converting and creating codelists</h1>
 <h4 class="author">Anoop Shah</h4>
-<h4 class="date">2023-04-18</h4>
+<h4 class="date">2024-10-28</h4>
 
 
 
 <div id="converting-and-creating-codelists" class="section level1">
 <h1>Converting and creating codelists</h1>
-<p>This vignette describes a suggested method for creating and reviewing SNOMED CT codelists. Before using the code in this vignette, please follow the vignette 'Using SNOMED dictionaries and codelists' to download the NHS SNOMED distribution and create a R SNOMED dictionary. If you want to include inactive concept descriptions, ensure that the <code>active_only</code> option is set to FALSE when creating the SNOMED dictionary using <code>loadSNOMED</code>.</p>
+<p>This vignette describes a suggested method for creating and reviewing SNOMED CT codelists. Before using the code in this vignette, please follow the vignette ‘Using SNOMED dictionaries and codelists’ to download the NHS SNOMED distribution and create a R SNOMED dictionary. If you want to include inactive concept descriptions, ensure that the <code>active_only</code> option is set to FALSE when creating the SNOMED dictionary using <code>loadSNOMED</code>.</p>
 <div id="searching-for-and-using-inactive-concepts-in-snomed-ct" class="section level2">
 <h2>Searching for and using inactive concepts in SNOMED CT</h2>
 <p>As SNOMED CT is maintained over time, some concepts are inactivated because they are duplicates, ambiguous or no longer used. Data in existing database may still be recorded using inactive concepts, so it is important that queries account for this.</p>
 <p>Prior to using any codelist to perform a search in a healthcare database, it is important to use the NHS Digital query table (downloadable from NHS Digital TRUD - <a href="https://isd.digital.nhs.uk/trud/user/guest/group/0/home" class="uri">https://isd.digital.nhs.uk/trud/user/guest/group/0/home</a>) to augment the codelist with inactive concepts. The Query Table contains ancestor - descendant relationships for inactive concepts which correspond to current locations in the SNOMED CT hierarchy. This allows appropriate inactive terms to be included as needed, as per your chosen provenance level.</p>
 <p>The available provenance levels are:</p>
 <ul>
-<li>0: subsumption is always true (i.e. the descendant is always a subtype of the ancestor)</li>
+<li>0: subsumption is always true (i.e. the descendant is always a subtype of the ancestor)</li>
 <li>1: subsumption is usually true (but there is a theoretical risk of false positives)</li>
 <li>2: both ancestors and descendents are only approximately known</li>
 <li>3: the original concept has at least two distinct meanings, so there is a risk of false positives</li>
 </ul>
 <p>The NHS Digital history table contains mappings of inactive SNOMED CT concepts to new/current concepts.</p>
-<p>Both the query table and the history table are automatically loaded using the loadSNOMED function if they are included in the folders specified when the function is called. The query table should have a name containing &quot;SNOMEDQueryTable&quot; and the history table should have a name containing &quot;HistorySubstitutionTable_Concepts&quot;.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(Rdiagnosislist)
-SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()
-
-<span class="co"># Create a codelist for right heart failure</span>
-rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span class="st">'Right heart failure'</span>, <span class="dt">include_desc =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<p>Both the query table and the history table are automatically loaded using the loadSNOMED function if they are included in the folders specified when the function is called. The query table should have a name containing “SNOMEDQueryTable” and the history table should have a name containing “HistorySubstitutionTable_Concepts”.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(Rdiagnosislist)</a>
+<a class="sourceLine" id="cb1-2" title="2">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co"># Create a codelist for right heart failure</span></a>
+<a class="sourceLine" id="cb1-5" title="5">rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span class="st">&#39;Right heart failure&#39;</span>, <span class="dt">include_desc =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
 <pre><code>## Converting 1 concept(s) to a codelist</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">addInactiveConcepts</span>(rhf)</code></pre></div>
-<pre><code>##             conceptId
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">addInactiveConcepts</span>(rhf)</a></code></pre></div>
+<pre><code>## Key: &lt;conceptId&gt;
+##             conceptId
+##       &lt;SNOMEDconcept&gt;
 ##  1:          10335000
 ##  2:          13839000
 ##  3:          44313006
@@ -205,14 +388,15 @@ rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span c
 ## 55: 16838951000119100
 ##             conceptId
 ##                                                                                          term
+##                                                                                        &lt;char&gt;
 ##  1:                                              Chronic right-sided heart failure (disorder)
-##  2:                                                            Bernheim's syndrome (disorder)
+##  2:                                                            Bernheim&#39;s syndrome (disorder)
 ##  3:                            Right heart failure secondary to left heart failure (disorder)
 ##  4:                                                            Acute cor pulmonale (disorder)
 ##  5:                                                                                      &lt;NA&gt;
 ##  6:                                   Chronic right-sided congestive heart failure (disorder)
 ##  7:                                                  Acute pulmonary heart disease (disorder)
-##  8:                                                              Ayerza's syndrome (disorder)
+##  8:                                                              Ayerza&#39;s syndrome (disorder)
 ##  9:                                                          Chronic cor pulmonale (disorder)
 ## 10:                                     Acute right-sided congestive heart failure (disorder)
 ## 11:                                                                  Cor pulmonale (disorder)
@@ -273,7 +457,7 @@ rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span c
 </ul>
 <p>When using the data for querying, the process is:</p>
 <ul>
-<li>Convert the codelist to the 'simple' format (i.e. enumerating all terms).</li>
+<li>Convert the codelist to the ‘simple’ format (i.e. enumerating all terms).</li>
 <li>Add inactive terms using the Query table, as above.</li>
 </ul>
 </div>
@@ -286,52 +470,52 @@ rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span c
 <li>Import the reviewed codelist, and use the as.SNOMEDcodelist function to convert it into a parsimonious form for curation.</li>
 </ul>
 <p>Example code:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(data.table)
-<span class="kw">library</span>(Rdiagnosislist)
-
-oldReadCodelist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">'</span>
-<span class="st">readcode|readterm</span>
-<span class="st">G54z500|Valvular heart disease&quot;                     </span>
-<span class="st">G5yyC00|Diastolic dysfunction&quot;                      </span>
-<span class="st">G5y3100|Ventricular dilatation&quot;</span>
-<span class="st">'</span>)
-
-<span class="co"># Get sample dictionaries</span>
-<span class="kw">data</span>(READMAPS)
-SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()
-
-<span class="co"># Create a mapping table for Read to SNOMED (from NHSD table in READMAPS)</span>
-NHSD_READ_TO_SNOMED &lt;-<span class="st"> </span>READMAPS[, <span class="kw">list</span>(<span class="dt">readcode =</span> <span class="kw">unlist</span>(read2_code)),
-    by =<span class="st"> </span>conceptId]
-mapped &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(NHSD_READ_TO_SNOMED[oldReadCodelist, <span class="dt">on =</span> <span class="st">'readcode'</span>]<span class="op">$</span>conceptId,
-    <span class="dt">codelist_name =</span> <span class="st">'heart_dis_from_read'</span>, <span class="dt">version =</span> <span class="dv">0</span>, <span class="dt">author =</span> <span class="st">'Me'</span>, <span class="dt">date =</span> <span class="st">'Feb 2022'</span>)</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">library</span>(data.table)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="kw">library</span>(Rdiagnosislist)</a>
+<a class="sourceLine" id="cb5-3" title="3"></a>
+<a class="sourceLine" id="cb5-4" title="4">oldReadCodelist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">&#39;</span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="st">readcode|readterm</span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="st">G54z500|Valvular heart disease&quot;                     </span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="st">G5yyC00|Diastolic dysfunction&quot;                      </span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="st">G5y3100|Ventricular dilatation&quot;</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="st">&#39;</span>)</a>
+<a class="sourceLine" id="cb5-10" title="10"></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="co"># Get sample dictionaries</span></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="kw">data</span>(READMAPS)</a>
+<a class="sourceLine" id="cb5-13" title="13">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb5-14" title="14"></a>
+<a class="sourceLine" id="cb5-15" title="15"><span class="co"># Create a mapping table for Read to SNOMED (from NHSD table in READMAPS)</span></a>
+<a class="sourceLine" id="cb5-16" title="16">NHSD_READ_TO_SNOMED &lt;-<span class="st"> </span>READMAPS[, <span class="kw">list</span>(<span class="dt">readcode =</span> <span class="kw">unlist</span>(read2_code)),</a>
+<a class="sourceLine" id="cb5-17" title="17">    by =<span class="st"> </span>conceptId]</a>
+<a class="sourceLine" id="cb5-18" title="18">mapped &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(NHSD_READ_TO_SNOMED[oldReadCodelist, <span class="dt">on =</span> <span class="st">&#39;readcode&#39;</span>]<span class="op">$</span>conceptId,</a>
+<a class="sourceLine" id="cb5-19" title="19">    <span class="dt">codelist_name =</span> <span class="st">&#39;heart_dis_from_read&#39;</span>, <span class="dt">version =</span> <span class="dv">0</span>, <span class="dt">author =</span> <span class="st">&#39;Me&#39;</span>, <span class="dt">date =</span> <span class="st">&#39;Feb 2022&#39;</span>)</a></code></pre></div>
 <pre><code>## Converting 3 concept(s) to a codelist</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Export to HTML</span>
-<span class="co"># htmlCodelistHierarchy(mapped, file = paste0(tempdir(), '/test.html'))</span>
-
-<span class="co"># Command to open file in web browser (Linux only)</span>
-<span class="co"># system(paste0('google-chrome ', tempdir(), '/test.html &amp;'))</span>
-
-<span class="co"># Reimport edited list</span>
-importedlist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">'</span>
-<span class="st">conceptId,term,include_desc,included,checked,comment</span>
-<span class="st">368009,&quot;Heart valve disorder (disorder)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span>
-<span class="st">3545003,&quot;Diastolic dysfunction (finding)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span>
-<span class="st">6210001,&quot;Dilatation of cardiac ventricle (disorder)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span>
-<span class="st">418304008,&quot;Diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">441530006,&quot;Chronic diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">443343001,&quot;Acute diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">443344007,&quot;Acute on chronic diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">153931000119109,&quot;Acute combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">153951000119103,&quot;Acute on chronic combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">153941000119100,&quot;Chronic combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">120891000119109,&quot;Diastolic heart failure stage C (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">120881000119106,&quot;Diastolic heart failure stage D (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span>
-<span class="st">'</span>)
-
-<span class="co"># Convert to parsimonious (tree format) codelist</span>
-treecodelist &lt;-<span class="st"> </span><span class="kw">as.SNOMEDcodelist</span>(importedlist, <span class="dt">format =</span> <span class="st">'tree'</span>,
-    <span class="dt">codelist_name =</span> <span class="st">'heart_dis_from_read'</span>, <span class="dt">version =</span> <span class="dv">1</span>, <span class="dt">author =</span> <span class="st">'Me'</span>, <span class="dt">date =</span> <span class="st">'Feb 2022'</span>)</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="co"># Export to HTML</span></a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="co"># htmlCodelistHierarchy(mapped, file = paste0(tempdir(), &#39;/test.html&#39;))</span></a>
+<a class="sourceLine" id="cb7-3" title="3"></a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="co"># Command to open file in web browser (Linux only)</span></a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="co"># system(paste0(&#39;google-chrome &#39;, tempdir(), &#39;/test.html &amp;&#39;))</span></a>
+<a class="sourceLine" id="cb7-6" title="6"></a>
+<a class="sourceLine" id="cb7-7" title="7"><span class="co"># Reimport edited list</span></a>
+<a class="sourceLine" id="cb7-8" title="8">importedlist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">&#39;</span></a>
+<a class="sourceLine" id="cb7-9" title="9"><span class="st">conceptId,term,include_desc,included,checked,comment</span></a>
+<a class="sourceLine" id="cb7-10" title="10"><span class="st">368009,&quot;Heart valve disorder (disorder)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-11" title="11"><span class="st">3545003,&quot;Diastolic dysfunction (finding)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-12" title="12"><span class="st">6210001,&quot;Dilatation of cardiac ventricle (disorder)&quot;,FALSE,TRUE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-13" title="13"><span class="st">418304008,&quot;Diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-14" title="14"><span class="st">441530006,&quot;Chronic diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-15" title="15"><span class="st">443343001,&quot;Acute diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-16" title="16"><span class="st">443344007,&quot;Acute on chronic diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-17" title="17"><span class="st">153931000119109,&quot;Acute combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-18" title="18"><span class="st">153951000119103,&quot;Acute on chronic combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-19" title="19"><span class="st">153941000119100,&quot;Chronic combined systolic and diastolic heart failure (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-20" title="20"><span class="st">120891000119109,&quot;Diastolic heart failure stage C (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-21" title="21"><span class="st">120881000119106,&quot;Diastolic heart failure stage D (disorder)&quot;,FALSE,FALSE,FALSE,&quot;&quot;</span></a>
+<a class="sourceLine" id="cb7-22" title="22"><span class="st">&#39;</span>)</a>
+<a class="sourceLine" id="cb7-23" title="23"></a>
+<a class="sourceLine" id="cb7-24" title="24"><span class="co"># Convert to parsimonious (tree format) codelist</span></a>
+<a class="sourceLine" id="cb7-25" title="25">treecodelist &lt;-<span class="st"> </span><span class="kw">as.SNOMEDcodelist</span>(importedlist, <span class="dt">format =</span> <span class="st">&#39;tree&#39;</span>,</a>
+<a class="sourceLine" id="cb7-26" title="26">    <span class="dt">codelist_name =</span> <span class="st">&#39;heart_dis_from_read&#39;</span>, <span class="dt">version =</span> <span class="dv">1</span>, <span class="dt">author =</span> <span class="st">&#39;Me&#39;</span>, <span class="dt">date =</span> <span class="st">&#39;Feb 2022&#39;</span>)</a></code></pre></div>
 </div>
 <div id="html-codelist-for-this-example" class="section level2">
 <h2>HTML codelist for this example</h2>
@@ -604,7 +788,7 @@ Add a concept and all descendants
 </li>
 <li>
 <button class="button remove">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 Remove a concept and all descendants
 </li>
@@ -616,20 +800,13 @@ Reviewing tools
 <button class="button tree" onclick="hideall(c_allrows, [8,2,1,3,4,6,5,13,16,9,10]);">
 Show top-level concepts only
 </button>
-<button class="button tree" onclick="showall(c_allrows);">
-Show all concepts
-</button>
+<button class="button tree" onclick="showall(c_allrows);">Show all concepts</button>
 </p>
 <p>
 <button class="button add" onclick="checkrows(c_allrows);">
-<strong>Mark all concepts as &quot;checked&quot;</strong>
+<strong>Mark all concepts as “checked”</strong>
 </button>
-<button class="button remove" onclick="uncheckrows(c_allrows);">
-<strong>Mark all concepts as &quot;unchecked&quot;</strong>
-</button>
-<button id="showuncheckedbutton" class="button tree" onclick="showuncheckedrows(c_allrows);">
-Show unchecked concepts only
-</button>
+<button class="button remove" onclick="uncheckrows(c_allrows);"><strong>Mark all concepts as “unchecked”</strong></button> <button id="showuncheckedbutton" class="button tree" onclick="showuncheckedrows(c_allrows);">Show unchecked concepts only</button>
 </p>
 <p>
 <button id="exportbutton" class="button tree" onclick="exportall()">
@@ -667,7 +844,7 @@ Contract
 <strong>Diastolic dysfunction (finding)</strong>
 </td>
 <td id="comment7">
-<a href="#" onclick="addcomment([7])">...</a>
+<a href="#" onclick="addcomment([7])">…</a>
 </td>
 <td id="checked7" style="color:black;">
 </td>
@@ -688,7 +865,7 @@ Y
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(7, [7,8,2,1,3,4,6,5,13,16,9,10])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -702,7 +879,7 @@ Contract
 · <strong>Diastolic heart failure (disorder)</strong>
 </td>
 <td id="comment8">
-<a href="#" onclick="addcomment([8])">...</a>
+<a href="#" onclick="addcomment([8])">…</a>
 </td>
 <td id="checked8" style="color:red;">
 </td>
@@ -723,7 +900,7 @@ N
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(8, [8,2,1,3,4,6,5,13,16,9,10])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -737,7 +914,7 @@ Contract
 · · <strong>Acute diastolic heart failure (disorder)</strong>
 </td>
 <td id="comment2">
-<a href="#" onclick="addcomment([2])">...</a>
+<a href="#" onclick="addcomment([2])">…</a>
 </td>
 <td id="checked2" style="color:red;">
 </td>
@@ -758,7 +935,7 @@ N
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(2, [2,1,3,4])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -772,7 +949,7 @@ Contract
 · · · <strong>Acute combined systolic and diastolic heart failure (disorder)</strong>
 </td>
 <td id="comment1">
-<a href="#" onclick="addcomment([1])">...</a>
+<a href="#" onclick="addcomment([1])">…</a>
 </td>
 <td id="checked1" style="color:red;">
 </td>
@@ -793,7 +970,7 @@ N
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(1, [1,3])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -804,7 +981,7 @@ N
 · · · · Acute on chronic combined systolic and diastolic heart failure (disorder)
 </td>
 <td id="comment3">
-<a href="#" onclick="addcomment([3,16])">...</a>
+<a href="#" onclick="addcomment([3,16])">…</a>
 </td>
 <td id="checked3" style="color:red;">
 </td>
@@ -830,7 +1007,7 @@ N
 · · · Acute on chronic diastolic heart failure (disorder)
 </td>
 <td id="comment4">
-<a href="#" onclick="addcomment([4,13])">...</a>
+<a href="#" onclick="addcomment([4,13])">…</a>
 </td>
 <td id="checked4" style="color:red;">
 </td>
@@ -859,7 +1036,7 @@ Contract
 · · <strong>Chronic diastolic heart failure (disorder)</strong>
 </td>
 <td id="comment6">
-<a href="#" onclick="addcomment([6])">...</a>
+<a href="#" onclick="addcomment([6])">…</a>
 </td>
 <td id="checked6" style="color:red;">
 </td>
@@ -880,7 +1057,7 @@ N
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(6, [6,5,13,16])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -891,7 +1068,7 @@ N
 · · · Chronic combined systolic and diastolic heart failure (disorder)
 </td>
 <td id="comment5">
-<a href="#" onclick="addcomment([5])">...</a>
+<a href="#" onclick="addcomment([5])">…</a>
 </td>
 <td id="checked5" style="color:red;">
 </td>
@@ -920,7 +1097,7 @@ Contract
 · · · <strong>Acute on chronic diastolic heart failure (disorder)</strong>
 </td>
 <td id="comment13">
-<a href="#" onclick="addcomment([4,13])">...</a>
+<a href="#" onclick="addcomment([4,13])">…</a>
 </td>
 <td id="checked13" style="color:red;">
 </td>
@@ -941,7 +1118,7 @@ N
 <strong>++</strong>
 </button>
 <button class="button remove" onclick="deselectrows(13, [4,13,16])">
-<strong>--</strong>
+<strong>–</strong>
 </button>
 </td>
 </tr>
@@ -952,7 +1129,7 @@ N
 · · · · Acute on chronic combined systolic and diastolic heart failure (disorder)
 </td>
 <td id="comment16">
-<a href="#" onclick="addcomment([3,16])">...</a>
+<a href="#" onclick="addcomment([3,16])">…</a>
 </td>
 <td id="checked16" style="color:red;">
 </td>
@@ -978,7 +1155,7 @@ N
 · · Diastolic heart failure stage C (disorder)
 </td>
 <td id="comment9">
-<a href="#" onclick="addcomment([9])">...</a>
+<a href="#" onclick="addcomment([9])">…</a>
 </td>
 <td id="checked9" style="color:red;">
 </td>
@@ -1004,7 +1181,7 @@ N
 · · Diastolic heart failure stage D (disorder)
 </td>
 <td id="comment10">
-<a href="#" onclick="addcomment([10])">...</a>
+<a href="#" onclick="addcomment([10])">…</a>
 </td>
 <td id="checked10" style="color:red;">
 </td>
@@ -1030,7 +1207,7 @@ N
 Dilatation of cardiac ventricle (disorder)
 </td>
 <td id="comment11">
-<a href="#" onclick="addcomment([11])">...</a>
+<a href="#" onclick="addcomment([11])">…</a>
 </td>
 <td id="checked11" style="color:black;">
 </td>
@@ -1056,7 +1233,7 @@ Y
 Heart valve disorder (disorder)
 </td>
 <td id="comment12">
-<a href="#" onclick="addcomment([12])">...</a>
+<a href="#" onclick="addcomment([12])">…</a>
 </td>
 <td id="checked12" style="color:black;">
 </td>

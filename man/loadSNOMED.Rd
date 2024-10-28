@@ -13,7 +13,7 @@ loadSNOMED(folders, active_only = TRUE, version = NULL)
 concepts}
 
 \item{version}{Version description. If NULL, it is derived from the
-folder paths and expressed in the form: INT{date} & UK{date}}
+folder paths and expressed in the form: INT date & UK date}
 }
 \value{
 An environment containing data.table objects: CONCEPT,
@@ -34,9 +34,6 @@ together, and are automatically appended by the function.
 The SNOMED CT files are available from the NHS Digital Technology
 Reference Update Distribution:
 \url{https://isd.digital.nhs.uk/trud/user/guest/group/0/home}
-
-(Note: May 2022 - This function needs to be updated to use the 
-latest SNOMED CT TRUD versions including the SNOMED CT definitions).
 }
 \examples{
 # Create a TEST environment and load the sample dictionaries

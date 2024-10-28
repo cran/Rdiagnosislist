@@ -37,14 +37,14 @@ relatedConcepts <- function(conceptIds,
 
 	active <- sourceId <- destinationId <- conceptId <- NULL
 
-	conceptIds <- as.SNOMEDconcept(conceptIds)
+	conceptIds <- as.SNOMEDconcept(conceptIds, SNOMED = SNOMED)
 	
 	# If no concepts supplied, return an empty vector
 	if (length(conceptIds) == 0){
 		return(conceptIds)
 	}
 	
-	typeId <- as.SNOMEDconcept(typeId)
+	typeId <- as.SNOMEDconcept(typeId, SNOMED = SNOMED)
 	if (reverse){
 		TOLINK <- data.table(destinationId = conceptIds, typeId = typeId)
 	} else {
@@ -107,9 +107,18 @@ relatedConcepts <- function(conceptIds,
 #' @param SNOMED environment containing a SNOMED dictionary
 #' @param include_self whether to include the original concept(s) in the
 #'   output, default = FALSE
+#' @param TRANSITIVE transitive closure table for ancestors and
+#'   descendants, containing is-a relationships. This table can be 
+#'   created by createTransitive to speed up the ancestor / descendant
+#'   functions. If a TRANSITIVE table is provided, the SNOMED environment
+#'   is not used and relatedConcepts is not called. TRANSITIVE should be
+#'   a data.table with columns ancestorId and descendantId.
 #' @param ... other arguments to pass to relatedConcepts
 #' @return a bit64 vector of SNOMED CT concepts
 #' @export
+#' @seealso [createTransitive()] for creation of TRANSITIVE table, and
+#'   [relatedConcepts()] for the underlying function to extract
+#'   SNOMED CT relationships. 
 #' @examples
 #' SNOMED <- sampleSNOMED()
 #'
@@ -118,21 +127,21 @@ relatedConcepts <- function(conceptIds,
 #' ancestors('Heart failure')
 #' descendants('Heart failure')
 parents <- function(conceptIds, include_self = FALSE, 
-	SNOMED = getSNOMED(), ...){
-	conceptIds <- as.SNOMEDconcept(unique(conceptIds))
+	SNOMED = getSNOMED(), TRANSITIVE = NULL, ...){
+	conceptIds <- unique(as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
 	parentIds <- relatedConcepts(conceptIds = conceptIds,
 		typeId = bit64::as.integer64('116680003'),
 		reverse = FALSE, recursive = FALSE, SNOMED = SNOMED, ...)
 	
 	if (include_self){
-		return(union(parentIds, conceptIds))
+		return(sort(union(parentIds, conceptIds)))
 	} else {
 		# Exclude originals
 		if (length(parentIds) > 0){
-			return(as.SNOMEDconcept(parentIds[
-				!(parentIds %in% conceptIds)]))
+			return(as.SNOMEDconcept(sort(parentIds[
+				!(parentIds %in% conceptIds)]), SNOMED = SNOMED))
 		} else {
-			return(parentIds)
+			return(parentIds) # zero length
 		}
 	}
 }
@@ -140,21 +149,27 @@ parents <- function(conceptIds, include_self = FALSE,
 #' @rdname parents
 #' @export
 ancestors <- function(conceptIds, include_self = FALSE, 
-	SNOMED = getSNOMED(), ...){
-	conceptIds <- as.SNOMEDconcept(unique(conceptIds))
-	ancestorIds <- relatedConcepts(conceptIds = conceptIds,
-		typeId = bit64::as.integer64('116680003'),
-		reverse = FALSE, recursive = TRUE, SNOMED = SNOMED, ...)
-		
+	SNOMED = getSNOMED(), TRANSITIVE = NULL, ...){
+	conceptIds <- unique(as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
+	if (is.null(TRANSITIVE)){
+		ancestorIds <- relatedConcepts(conceptIds = conceptIds,
+			typeId = bit64::as.integer64('116680003'),
+			reverse = FALSE, recursive = TRUE, SNOMED = SNOMED, ...)
+	} else {
+		ancestorIds <- as.SNOMEDconcept(TRANSITIVE[
+			data.table(descendantId = conceptIds),
+			on = 'descendantId']$ancestorId, SNOMED = SNOMED)
+	}
+
 	if (include_self){
-		return(union(ancestorIds, conceptIds))
+		return(sort(union(ancestorIds, conceptIds)))
 	} else {
 		# Exclude originals
 		if (length(ancestorIds) > 0){
-			return(as.SNOMEDconcept(ancestorIds[
-				!(ancestorIds %in% conceptIds)]))
+			return(as.SNOMEDconcept(sort(ancestorIds[
+				!(ancestorIds %in% conceptIds)]), SNOMED = SNOMED))
 		} else {
-			return(ancestorIds)
+			return(ancestorIds) # zero length
 		}
 	}
 }
@@ -162,21 +177,21 @@ ancestors <- function(conceptIds, include_self = FALSE,
 #' @rdname parents
 #' @export
 children <- function(conceptIds, include_self = FALSE, 
-	SNOMED = getSNOMED(), ...){
-	conceptIds <- as.SNOMEDconcept(unique(conceptIds))
+	SNOMED = getSNOMED(), TRANSITIVE = NULL, ...){
+	conceptIds <- unique(as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
 	childIds <- relatedConcepts(conceptIds = conceptIds,
 		typeId = bit64::as.integer64('116680003'),
 		reverse = TRUE, recursive = FALSE, SNOMED = SNOMED, ...)
 
 	if (include_self){
-		return(union(childIds, conceptIds))
+		return(sort(union(childIds, conceptIds)))
 	} else {
 		# Exclude originals
 		if (length(childIds) > 0){
-			return(as.SNOMEDconcept(childIds[
-				!(childIds %in% conceptIds)]))
+			return(as.SNOMEDconcept(sort(childIds[
+				!(childIds %in% conceptIds)]), SNOMED = SNOMED))
 		} else {
-			return(childIds)
+			return(childIds) # zero length
 		}
 	}
 }
@@ -184,23 +199,82 @@ children <- function(conceptIds, include_self = FALSE,
 #' @rdname parents
 #' @export
 descendants <- function(conceptIds, include_self = FALSE, 
-	SNOMED = getSNOMED(), ...){
-	conceptIds <- as.SNOMEDconcept(unique(conceptIds))
-	descendantIds <- relatedConcepts(conceptIds = conceptIds,
-		typeId = bit64::as.integer64('116680003'),
-		reverse = TRUE, recursive = TRUE, SNOMED = SNOMED, ...)
+	SNOMED = getSNOMED(), TRANSITIVE = NULL, ...){
+	conceptIds <- unique(as.SNOMEDconcept(conceptIds, SNOMED = SNOMED))
+	if (is.null(TRANSITIVE)){
+		descendantIds <- relatedConcepts(conceptIds = conceptIds,
+			typeId = bit64::as.integer64('116680003'),
+			reverse = TRUE, recursive = TRUE, SNOMED = SNOMED, ...)
+	} else {
+		descendantIds <- as.SNOMEDconcept(TRANSITIVE[
+			data.table(ancestorId = conceptIds),
+			on = 'ancestorId']$descendantId, SNOMED = SNOMED)
+	}
 
 	if (include_self){
-		return(union(descendantIds, conceptIds))
+		return(sort(union(descendantIds, conceptIds)))
 	} else {
 		# Exclude originals
 		if (length(descendantIds) > 0){
-			return(as.SNOMEDconcept(descendantIds[
-				!(descendantIds %in% conceptIds)]))
+			return(as.SNOMEDconcept(sort(descendantIds[
+				!(descendantIds %in% conceptIds)]), SNOMED = SNOMED))
 		} else {
-			return(descendantIds)
+			return(descendantIds) # zero length
 		}
 	}
+}
+
+#' Create a transitive closure table for is-a relationships for
+#' faster ancestor / descendant lookups
+#'
+#' Returns a data.table containing ancestor / descendant relationships
+#' which can be used in ancestors and descendants functions
+#'
+#' @param conceptIds character or integer64 vector of SNOMED concept IDs
+#'   for the subset of concepts to include in the transitive table.
+#' @param SNOMED environment containing a SNOMED dictionary
+#' @param tables vector of names of relationship table(s) to use;
+#'   by default use both RELATIONSHIP and STATEDRELATIONSHIP
+#' @seealso [ancestors()] and [descendants()]
+#' @export
+#' @examples
+#' SNOMED <- sampleSNOMED()
+#'
+#' TRANSITIVE <- createTransitive('Heart failure')
+createTransitive <- function(conceptIds, SNOMED = getSNOMED(),
+	tables = c('RELATIONSHIP', 'STATEDRELATIONSHIP')){
+		
+	# Define symbols for R CMD check
+	childId <- parentId <- sourceId <- destinationId <- typeId <- NULL
+		
+	conceptIds <- as.SNOMEDconcept(conceptIds, SNOMED = SNOMED)
+	WORKING <- rbindlist(lapply(tables, function(x){
+		TEMP <- get(x, envir = SNOMED)
+		if (nrow(TEMP) == 0){
+			data.table(childId = bit64::as.integer64(0),
+				parentId = bit64::as.integer64(0))
+		} else {
+			TEMP[(sourceId %in% conceptIds |
+				destinationId %in% conceptIds) &
+				typeId == bit64::as.integer64('116680003'),
+				list(childId = sourceId, parentId = destinationId)]
+		}
+	}))
+	WORKING <- WORKING[!duplicated(WORKING)]
+	new_nrows <- nrow(WORKING)
+	old_nrows <- 0
+	while(new_nrows > old_nrows){
+		WORKING <- rbind(WORKING, merge(
+			WORKING[, list(childId, selfId = parentId)],
+			WORKING[, list(selfId = childId, parentId)], by = 'selfId',
+			allow.cartesian = TRUE)[, list(childId, parentId)])
+		WORKING <- WORKING[!duplicated(WORKING)]
+		gc()
+		old_nrows <- new_nrows
+		new_nrows <- nrow(WORKING)
+	}
+	WORKING[childId %in% conceptIds & parentId %in% conceptIds,
+		list(ancestorId = parentId, descendantId = childId)]
 }
 
 #' Whether SNOMED CT concepts have particular attributes
@@ -321,6 +395,10 @@ attrConcept <- function(conceptIds,
 
 #' Retrieves semantic types using the text 'tag' in the description
 #'
+#' Uses the fully specified name in the DESCRIPTION table. If there are
+#' multiple fully specified names, the name with the most recent
+#' effectiveTime will be used.
+#'
 #' @param conceptIds character or integer64 vector of SNOMED concept IDs
 #' @param SNOMED environment containing a SNOMED dictionary
 #' @return a character vector of semantic tags corresponding to the conceptIDs 
@@ -330,12 +408,19 @@ attrConcept <- function(conceptIds,
 #' SNOMED <- sampleSNOMED()
 #'
 #' semanticType(as.SNOMEDconcept(c('Heart failure', 'Is a')))
-semanticType <- function(conceptIds,
-	SNOMED = getSNOMED()){
-	tag <- term <- NULL
+semanticType <- function(conceptIds, SNOMED = getSNOMED()){
+	
+	# Declare symbols to avoid R check error
+	tag <- term <- conceptId <- typeId <- active <- NULL
+	effectiveTime <- NULL
 	
 	conceptIds <- as.SNOMEDconcept(conceptIds, SNOMED = SNOMED)
-	DESC <- description(conceptIds, SNOMED = SNOMED)
+	DESC <- SNOMED$DESCRIPTION[conceptId %in% conceptIds & typeId %in%
+		bit64::as.integer64('900000000000003001') & active %in% TRUE,
+		list(conceptId, effectiveTime, term)][
+		order(conceptId, -effectiveTime)][
+		, list(term = term[1]), by = conceptId]
+	DESC <- DESC[data.table(conceptId = conceptIds), on = 'conceptId']
 	DESC[, tag := ifelse(term %like% '^.*\\(([[:alnum:]\\/\\+ ]+)\\)$',
 		sub('^.*\\(([[:alnum:]\\/\\+ ]+)\\)$', '\\1', term), '')]
 	return(DESC$tag)

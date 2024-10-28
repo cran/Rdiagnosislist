@@ -45,12 +45,13 @@ SNOMED <- sampleSNOMED()
 my_concepts <- SNOMEDconcept('Acute heart failure')
 my_codelist <- SNOMEDcodelist(data.frame(conceptId = my_concepts,
   include_desc = TRUE))
+my_codelist <- getMaps(my_codelist, to = 'icd10')
 htmlCodelistHierarchy(my_codelist, file = paste0(tempdir(),
-  'codelist.html'))
+  '/codelist.html'), extracols = 'icd10_code')
 # The codelist.html file can now be viewed in a web browser
 
 # Clean up temporary file
-file.remove(paste0(tempdir(), 'codelist.html'))
+file.remove(paste0(tempdir(), '/codelist.html'))
 }
 \seealso{
 showCodelistHierarchy

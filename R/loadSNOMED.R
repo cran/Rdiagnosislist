@@ -13,18 +13,19 @@
 #' Reference Update Distribution:
 #' \url{https://isd.digital.nhs.uk/trud/user/guest/group/0/home}
 #'
-#' (Note: May 2022 - This function needs to be updated to use the 
-#' latest SNOMED CT TRUD versions including the SNOMED CT definitions).
-#'
 #' @param folders Vector of folder paths containing SNOMED CT files
 #' @param active_only Whether to limit to current (active) SNOMED CT
 #'   concepts
 #' @param version Version description. If NULL, it is derived from the
-#'   folder paths and expressed in the form: INT{date} & UK{date}
+#'   folder paths and expressed in the form: INT date & UK date
 #' @return An environment containing data.table objects: CONCEPT,
 #'   DESCRIPTION, RELATIONSHIP, STATEDRELATIONSHIP, REFSET,
 #'   SIMPLEMAP, EXTENDEDMAP, HISTORY (optional), QUERY (optional)
 #' @export
+#' @importFrom graphics text
+#' @importFrom utils download.file
+#' @importFrom utils untar
+#' @importFrom utils unzip
 #' @seealso loadREADMAPS, CONCEPT, DESCRIPTION, RELATIONSHIP,
 #' STATEDRELATIONSHIP, REFSET, SIMPLEMAP, EXTENDEDMAP, QUERY, HISTORY
 #' sampleSNOMED, getSNOMED, exportSNOMEDenvir
@@ -411,6 +412,49 @@ sampleSNOMED <- function(){
 	return(SNOMED)
 }
 
+# Internal function to add a concept to the sample database
+addConceptsToSampleSNOMED <- function(new_conceptIds, SNOMED,
+	folderpath){
+	# new_conceptIds = vector of SNOMED concepts to add to sample
+	# SNOMED = comprehensive SNOMED environment
+	# folderpath = path to data folder of package
+	
+	# Symbols to declare to avoid R check error
+	id <- conceptId <- sourceId <- destinationId <- NULL
+	CONCEPT <- DESCRIPTION <- RELATIONSHIP <- NULL
+	
+	new_conceptIds <- as.SNOMEDconcept(new_conceptIds,
+		SNOMED = SNOMED)
+	SAMPLE <- sampleSNOMED()
+	
+	SAMPLE$CONCEPT <- rbind(SAMPLE$CONCEPT,
+		SNOMED$CONCEPT[id %in% new_conceptIds,
+		names(SAMPLE$CONCEPT), with = FALSE])
+	SAMPLE$CONCEPT <- SAMPLE$CONCEPT[!duplicated(SAMPLE$CONCEPT)]
+	
+	SAMPLE$DESCRIPTION <- rbind(SAMPLE$DESCRIPTION,
+		SNOMED$DESCRIPTION[conceptId %in% new_conceptIds,
+		names(SAMPLE$DESCRIPTION), with = FALSE])
+	SAMPLE$DESCRIPTION <- SAMPLE$DESCRIPTION[
+		!duplicated(SAMPLE$DESCRIPTION)]
+	
+	SAMPLE$RELATIONSHIP <- rbind(SAMPLE$RELATIONSHIP,
+		SNOMED$RELATIONSHIP[sourceId %in% SAMPLE$CONCEPT$id &
+		destinationId %in% SAMPLE$CONCEPT$id,
+		names(SAMPLE$RELATIONSHIP), with = FALSE])
+	SAMPLE$RELATIONSHIP <- SAMPLE$RELATIONSHIP[
+		!duplicated(SAMPLE$RELATIONSHIP)]
+		
+	save(CONCEPT, file = paste0(folderpath,
+		'CONCEPT.RData'), envir = SAMPLE)
+	save(DESCRIPTION, file = paste0(folderpath,
+		'DESCRIPTION.RData'), envir = SAMPLE)
+	save(RELATIONSHIP, file = paste0(folderpath,
+		'RELATIONSHIP.RData'), envir = SAMPLE)
+
+	return(SAMPLE)
+}
+
 #' Retrieves SNOMED CT dictionary from the global environment
 #'
 #' Returns an object named 'SNOMED' from the global
@@ -451,21 +495,21 @@ getSNOMED <- function(SNOMEDname = 'SNOMED'){
 	if (is.null(SNOMED$DESCRIPTION)){
 		stop('No table named DESCRIPTION in SNOMED environment')
 	}
-	if (is.null(SNOMED$REFSET)){
-		warning('No table named REFSET in SNOMED environment')
-	}
-	if (is.null(SNOMED$SIMPLEMAP)){
-		warning('No table named SIMPLEMAP in SNOMED environment')
-	}
-	if (is.null(SNOMED$EXTENDEDMAP)){
-		warning('No table named EXTENDEDMAP in SNOMED environment')
-	}
-	if (is.null(SNOMED$HISTORY)){
-		warning('No table named HISTORY in SNOMED environment')
-	}
-	if (is.null(SNOMED$QUERY)){
-		warning('No table named QUERY in SNOMED environment')
-	}
+	#if (is.null(SNOMED$REFSET)){
+	#	warning('No table named REFSET in SNOMED environment')
+	#}
+	#if (is.null(SNOMED$SIMPLEMAP)){
+	#	warning('No table named SIMPLEMAP in SNOMED environment')
+	#}
+	#if (is.null(SNOMED$EXTENDEDMAP)){
+	#	warning('No table named EXTENDEDMAP in SNOMED environment')
+	#}
+	#if (is.null(SNOMED$HISTORY)){
+	#	warning('No table named HISTORY in SNOMED environment')
+	#}
+	#if (is.null(SNOMED$QUERY)){
+	#	warning('No table named QUERY in SNOMED environment')
+	#}
 	# Return the retrieved environment
 	SNOMED
 }
@@ -490,7 +534,7 @@ getSNOMED <- function(SNOMEDname = 'SNOMED'){
 #' be missed out, and the list will be incomplete.
 #'
 #' This function uses the following three mapping files:
-#' \itemize{
+#' \describe{
 #'    \item{not_assured_rcsctmap_uk}{ File containing Read 2 codes
 #'      mapped to SNOMED CT, in file:
 #'      'Not Clinically Assured/rcsctmap_uk_20200401000001.txt'}
@@ -503,7 +547,7 @@ getSNOMED <- function(SNOMEDname = 'SNOMED'){
 #' }
 #' 
 #' The output data.table has the following columns:
-#' \itemize{
+#' \describe{
 #'   \item{conceptId}{ integer64: SNOMED CT conceptId (primary key)} 
 #'   \item{read2_code}{ list: character list of 7-character Read 2 codes}
 #'   \item{read2_term}{ list: character list of Read 2 terms}
