@@ -32,7 +32,13 @@ createCDB}
 could not be matched to SNOMED CT concepts}
 }
 \value{
-a SNOMEDfinding objects, which is a data.table with
+a SNOMEDfinding objects, which is a data.table with columns
+  rootId (integer64), with (integer64), due_to (integer64),
+  after (integer64), without (integer64), body_site (integer64),
+  severity (integer64), stage (integer64), laterality (integer64),
+  roottext (character), partId (integer64),
+  other_conceptId (character, a string of SNOMED CT concept IDs
+  separated by spaces), origId (integer64)
 }
 \description{
 Decomposes a SNOMED CT term into separate components according
@@ -41,13 +47,15 @@ may have a number of possible decompositions. Requires a CDB
 environment created by createCDB.
 }
 \examples{
+\dontrun{
 miniCDB <- createCDB(SNOMED = sampleSNOMED())
 D <- decompose(as.SNOMEDconcept('Cor pulmonale',
   SNOMED = sampleSNOMED()), CDB = miniCDB, SNOMED = sampleSNOMED())
+}
 
 # -------------------------------------------------------
 # 83291003 | Cor pulmonale (disorder)
 # -------------------------------------------------------
 # Root : 367363000 | Right ventricular failure (disorder)
-# - Due to : 70995007 | Pulmonary hypertension (disorder)
+# - Due to : 19829001 | Disorder of lung (disorder)
 }

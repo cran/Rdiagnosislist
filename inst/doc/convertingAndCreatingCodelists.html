@@ -12,7 +12,7 @@
 
 <meta name="author" content="Anoop Shah" />
 
-<meta name="date" content="2024-10-28" />
+<meta name="date" content="2025-01-28" />
 
 <title>Converting and creating codelists</title>
 
@@ -301,7 +301,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Converting and creating codelists</h1>
 <h4 class="author">Anoop Shah</h4>
-<h4 class="date">2024-10-28</h4>
+<h4 class="date">2025-01-28</h4>
 
 
 
@@ -322,10 +322,15 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>The NHS Digital history table contains mappings of inactive SNOMED CT concepts to new/current concepts.</p>
 <p>Both the query table and the history table are automatically loaded using the loadSNOMED function if they are included in the folders specified when the function is called. The query table should have a name containing “SNOMEDQueryTable” and the history table should have a name containing “HistorySubstitutionTable_Concepts”.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(Rdiagnosislist)</a>
-<a class="sourceLine" id="cb1-2" title="2">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">require</span>(data.table)</a>
 <a class="sourceLine" id="cb1-3" title="3"></a>
-<a class="sourceLine" id="cb1-4" title="4"><span class="co"># Create a codelist for right heart failure</span></a>
-<a class="sourceLine" id="cb1-5" title="5">rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span class="st">&#39;Right heart failure&#39;</span>, <span class="dt">include_desc =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co"># Use one thread only for CRAN</span></a>
+<a class="sourceLine" id="cb1-5" title="5">data.table<span class="op">::</span><span class="kw">setDTthreads</span>(<span class="dt">threads =</span> <span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb1-6" title="6"></a>
+<a class="sourceLine" id="cb1-7" title="7">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb1-8" title="8"></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="co"># Create a codelist for right heart failure</span></a>
+<a class="sourceLine" id="cb1-10" title="10">rhf &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(<span class="st">&#39;Right heart failure&#39;</span>, <span class="dt">include_desc =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
 <pre><code>## Converting 1 concept(s) to a codelist</code></pre>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">addInactiveConcepts</span>(rhf)</a></code></pre></div>
 <pre><code>## Key: &lt;conceptId&gt;
@@ -470,25 +475,22 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li>Import the reviewed codelist, and use the as.SNOMEDcodelist function to convert it into a parsimonious form for curation.</li>
 </ul>
 <p>Example code:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">library</span>(data.table)</a>
-<a class="sourceLine" id="cb5-2" title="2"><span class="kw">library</span>(Rdiagnosislist)</a>
-<a class="sourceLine" id="cb5-3" title="3"></a>
-<a class="sourceLine" id="cb5-4" title="4">oldReadCodelist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">&#39;</span></a>
-<a class="sourceLine" id="cb5-5" title="5"><span class="st">readcode|readterm</span></a>
-<a class="sourceLine" id="cb5-6" title="6"><span class="st">G54z500|Valvular heart disease&quot;                     </span></a>
-<a class="sourceLine" id="cb5-7" title="7"><span class="st">G5yyC00|Diastolic dysfunction&quot;                      </span></a>
-<a class="sourceLine" id="cb5-8" title="8"><span class="st">G5y3100|Ventricular dilatation&quot;</span></a>
-<a class="sourceLine" id="cb5-9" title="9"><span class="st">&#39;</span>)</a>
-<a class="sourceLine" id="cb5-10" title="10"></a>
-<a class="sourceLine" id="cb5-11" title="11"><span class="co"># Get sample dictionaries</span></a>
-<a class="sourceLine" id="cb5-12" title="12"><span class="kw">data</span>(READMAPS)</a>
-<a class="sourceLine" id="cb5-13" title="13">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
-<a class="sourceLine" id="cb5-14" title="14"></a>
-<a class="sourceLine" id="cb5-15" title="15"><span class="co"># Create a mapping table for Read to SNOMED (from NHSD table in READMAPS)</span></a>
-<a class="sourceLine" id="cb5-16" title="16">NHSD_READ_TO_SNOMED &lt;-<span class="st"> </span>READMAPS[, <span class="kw">list</span>(<span class="dt">readcode =</span> <span class="kw">unlist</span>(read2_code)),</a>
-<a class="sourceLine" id="cb5-17" title="17">    by =<span class="st"> </span>conceptId]</a>
-<a class="sourceLine" id="cb5-18" title="18">mapped &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(NHSD_READ_TO_SNOMED[oldReadCodelist, <span class="dt">on =</span> <span class="st">&#39;readcode&#39;</span>]<span class="op">$</span>conceptId,</a>
-<a class="sourceLine" id="cb5-19" title="19">    <span class="dt">codelist_name =</span> <span class="st">&#39;heart_dis_from_read&#39;</span>, <span class="dt">version =</span> <span class="dv">0</span>, <span class="dt">author =</span> <span class="st">&#39;Me&#39;</span>, <span class="dt">date =</span> <span class="st">&#39;Feb 2022&#39;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">oldReadCodelist &lt;-<span class="st"> </span><span class="kw">fread</span>(<span class="st">&#39;</span></a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="st">readcode|readterm</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="st">G54z500|Valvular heart disease&quot;                     </span></a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="st">G5yyC00|Diastolic dysfunction&quot;                      </span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="st">G5y3100|Ventricular dilatation&quot;</span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="st">&#39;</span>)</a>
+<a class="sourceLine" id="cb5-7" title="7"></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co"># Get sample dictionaries</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="kw">data</span>(READMAPS)</a>
+<a class="sourceLine" id="cb5-10" title="10">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb5-11" title="11"></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="co"># Create a mapping table for Read to SNOMED (from NHSD table in READMAPS)</span></a>
+<a class="sourceLine" id="cb5-13" title="13">NHSD_READ_TO_SNOMED &lt;-<span class="st"> </span>READMAPS[, <span class="kw">list</span>(<span class="dt">readcode =</span> <span class="kw">unlist</span>(read2_code)),</a>
+<a class="sourceLine" id="cb5-14" title="14">    by =<span class="st"> </span>conceptId]</a>
+<a class="sourceLine" id="cb5-15" title="15">mapped &lt;-<span class="st"> </span><span class="kw">SNOMEDcodelist</span>(NHSD_READ_TO_SNOMED[oldReadCodelist, <span class="dt">on =</span> <span class="st">&#39;readcode&#39;</span>]<span class="op">$</span>conceptId,</a>
+<a class="sourceLine" id="cb5-16" title="16">    <span class="dt">codelist_name =</span> <span class="st">&#39;heart_dis_from_read&#39;</span>, <span class="dt">version =</span> <span class="dv">0</span>, <span class="dt">author =</span> <span class="st">&#39;Me&#39;</span>, <span class="dt">date =</span> <span class="st">&#39;Feb 2022&#39;</span>)</a></code></pre></div>
 <pre><code>## Converting 3 concept(s) to a codelist</code></pre>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="co"># Export to HTML</span></a>
 <a class="sourceLine" id="cb7-2" title="2"><span class="co"># htmlCodelistHierarchy(mapped, file = paste0(tempdir(), &#39;/test.html&#39;))</span></a>

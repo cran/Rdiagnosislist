@@ -16,18 +16,26 @@
 #' @param noisy whether to output messages (for debugging)
 #' @param omit_unmatched whether to omit rows in which some attributes
 #'   could not be matched to SNOMED CT concepts
-#' @return a SNOMEDfinding objects, which is a data.table with
+#' @return a SNOMEDfinding objects, which is a data.table with columns
+#'   rootId (integer64), with (integer64), due_to (integer64),
+#'   after (integer64), without (integer64), body_site (integer64),
+#'   severity (integer64), stage (integer64), laterality (integer64),
+#'   roottext (character), partId (integer64),
+#'   other_conceptId (character, a string of SNOMED CT concept IDs
+#'   separated by spaces), origId (integer64)
 #' @export
 #' @examples
+#' \dontrun{
 #' miniCDB <- createCDB(SNOMED = sampleSNOMED())
 #' D <- decompose(as.SNOMEDconcept('Cor pulmonale',
 #'   SNOMED = sampleSNOMED()), CDB = miniCDB, SNOMED = sampleSNOMED())
+#' }
 #'
 #' # -------------------------------------------------------
 #' # 83291003 | Cor pulmonale (disorder)
 #' # -------------------------------------------------------
 #' # Root : 367363000 | Right ventricular failure (disorder)
-#' # - Due to : 70995007 | Pulmonary hypertension (disorder)
+#' # - Due to : 19829001 | Disorder of lung (disorder)
 decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 	SNOMED = getSNOMED(), noisy = FALSE, omit_unmatched = TRUE){
 	# decomposes the diagnosis_text (e.g. from a SNOMED CT description)
@@ -38,7 +46,8 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 	type <- term <- partId <- rootId <- parttext <- conceptId <- NULL
 	conceptId <- use <- other_attr <- rootId <- origId <- NULL
 	required_laterality <- exact <- body_site <- laterality <- NULL
-	due_to <- severity <- stage <- other_conceptId <- NULL
+	due_to <- severity <- stage <- other_conceptId <- without <- NULL
+	sourceId <- destinationId <- typeId <- active <- after <- NULL
 	
 	conceptIds <- as.character(as.SNOMEDconcept(conceptIds,
 		SNOMED = SNOMED))
@@ -50,6 +59,7 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 					SNOMED = SNOMED, noisy = noisy,
 					omit_unmatched = omit_unmatched)
 			}))
+			C <- C[!duplicated(C)]
 			setattr(C, 'class', c('SNOMEDfindings', 'data.table', 'data.frame'))
 			return(C)
 		} else if (length(diagnosis_text) == length(conceptIds)){
@@ -58,6 +68,7 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 					SNOMED = SNOMED, noisy = noisy,
 					omit_unmatched = omit_unmatched)
 			}, x = conceptIds, y = diagnosis_text))
+			C <- C[!duplicated(C)]
 			setattr(C, 'class', c('SNOMEDfindings', 'data.table', 'data.frame'))
 			return(C)
 		} else {
@@ -79,6 +90,7 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 				SNOMED = SNOMED, noisy = noisy,
 				omit_unmatched = omit_unmatched)
 		}))
+		C <- C[!duplicated(C)]
 		setattr(C, 'class', c('SNOMEDfindings', 'data.table', 'data.frame'))
 		return(C)
 	}
@@ -136,18 +148,22 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 			other_attr = character(0)))
 	}
 	
-	RELEVANT <- attrConcept(the_conceptId, SNOMED = SNOMED)
-	relevant_conceptId <- c(RELEVANT$sourceId, RELEVANT$destinationId)
-	relevant_conceptId <- union(union(children(
+	# RELEVANT <- attrConcept(the_conceptId, SNOMED = SNOMED)
+	# relevant_conceptId <- c(RELEVANT$sourceId, RELEVANT$destinationId)
+	# attrConcept is slow, to rewrite
+	relevant_conceptId <- c(SNOMED$RELATIONSHIP[sourceId %in%
+		the_conceptId]$destinationId,
+		SNOMED$RELATIONSHIP[destinationId %in% the_conceptId]$sourceId)
+	relevant_conceptId <- union(children(
 		setdiff(anc(relevant_conceptId), c(CDB$SCT_disorder,
 		CDB$SCT_finding)), SNOMED = SNOMED, include_self = TRUE),
-		desc(relevant_conceptId, include_self = TRUE)),
-		CDB$QUAL$conceptId)
+		desc(relevant_conceptId, include_self = TRUE))
 	
 	#### SPLIT INTO PARTS
 	do_splitparts <- function(conceptId, text){
+		
 		# text must be lower case with space before and after
-		splitpart <- function(OLD, text, split_var, split_text,
+		splitpart <- function(OLD, split_var, split_text,
 			the_typeId = NULL, SOURCE = CDB$FINDINGS, reverse = FALSE){
 			linked <- NULL
 			# If split has already taken place successfully (i.e.
@@ -157,22 +173,34 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 					return(OLD)
 				}
 			}
+
 			# the_typeId must be a single SNOMED concept
 			if (text %like% paste0(' (', split_text, ') ')){
+				myregex <- paste0('^ ([^ ].*) (', split_text,
+					') (.*[^ ]) $')
 				if (reverse){
 					linked <- as.SNOMEDconcept(unique(SOURCE[term ==
-						sub(paste0('^ ([^ ].*) (', split_text,
-						') (.*[^ ]) $'), ' \\1 ', text)]$conceptId),
+						sub(myregex, ' \\1 ', text)]$conceptId),
 						SNOMED = SNOMED)
 				} else {
 					linked <- as.SNOMEDconcept(unique(SOURCE[term ==
-						sub(paste0('^ ([^ ].*) (', split_text,
-						') (.*[^ ]) $'), ' \\3 ', text)]$conceptId),
+						sub(myregex, ' \\3 ', text)]$conceptId),
 						SNOMED = SNOMED)
+				}
+				if (noisy){
+					message(paste('Attempting to split by',
+						paste(split_var, collapse = ' '),
+						'at', paste(split_text, collapse = ' ')))
+					if (length(linked) == 0){
+						message('Unsucessful - no text match') 
+					} else { 
+						message(paste0('Linked: ',
+							description(linked, SNOMED = SNOMED)$term))
+					}
 				}
 				if (!is.null(the_typeId)){
 					# allow only one related concept, and it must match
-					# the SNOMED relationshpi specified in the_typeId
+					# the SNOMED relationship specified in the_typeId
 					linked_text <- linked
 					linked <- NULL
 					linked_sct <- as.SNOMEDconcept(character(0),
@@ -199,7 +227,10 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 								desc(linked_sct)))
 						}
 					} else {
-						linked <- linked_sct
+						# return NULL if no text match, to avoid errors
+						# in case there are multiple SCT matches
+						linked <- NULL
+						# linked <- linked_sct
 					}
 					
 					# check it is a valid concept to link to, and only
@@ -226,13 +257,12 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 						linked <- linked[1]
 					}
 				}
+				
 				if (!is.null(linked)){
 					if (reverse){
-						text <- sub(paste0('^ ([^ ].*) (', split_text,
-						') (.*[^ ]) $'), ' \\3 ', text)
+						text <- sub(myregex, ' \\3 ', text)
 					} else {
-						text <- sub(paste0('^ ([^ ].*) (', split_text,
-						') (.*[^ ]) $'), ' \\1 ', text)
+						text <- sub(myregex, ' \\1 ', text)
 					}
 				}
 			}
@@ -246,9 +276,15 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 					the_rootId <- conceptId
 				} else {
 					if (noisy){
-						message(paste('Splitting',
+						message(paste('Successful split by',
 							paste(split_var, collapse = ' '),
-							'at', paste(split_text, collapse = ' ')))
+							'at', paste(split_text, collapse = ' '),
+							'with SNOMED type as',
+							paste(description(the_typeId,
+							SNOMED = SNOMED)$term, collapse = ', ')))
+						message(paste0('Linked: ',
+							description(linked, SNOMED = SNOMED)$term))
+						message(paste0('Remaining text:', text, '\n'))
 					}
 				}
 				NEW <- data.table(text = text, rootId = the_rootId[1],
@@ -259,49 +295,49 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		}
 		
 		OUT <- BLANK_OUTPUT()
-		x <- text
 		
 		# Attempt up to one split in the following order:
 		
 		# DUE TO
-		OUT <- splitpart(OUT, x, 'due_to',
-			'with|co-occurrent and due to|resulting from',
+		OUT <- splitpart(OUT, 'due_to',
+			'with|cooccurrent and due to|co-occurrent and due to|resulting from',
 			CDB$SCT_dueto)
-		OUT <- splitpart(OUT, x, 'due_to', 'due to|caused by',
+		OUT <- splitpart(OUT, 'due_to', 'due to|caused by',
 			c(CDB$SCT_cause, CDB$SCT_dueto), SOURCE = CDB$CAUSES)
-		OUT <- splitpart(OUT, x, 'due_to', 'causing|resulting in|complicated by',
+		OUT <- splitpart(OUT, 'due_to', 'causing|resulting in|complicated by',
 			CDB$SCT_cause, SOURCE = CDB$CAUSES, reverse = TRUE)
 		# Caused by a non-finding (e.g. an organism or substance)
-		OUT <- splitpart(OUT, x, 'due_to', 'by',
+		OUT <- splitpart(OUT, 'due_to', 'by',
 			CDB$SCT_cause, SOURCE = CDB$OTHERCAUSE)
-		OUT <- splitpart(OUT, x, 'due_to', 'causing|resulting in',
+		OUT <- splitpart(OUT, 'due_to', 'causing|resulting in',
 			reverse = TRUE)
-		OUT <- splitpart(OUT, x, 'due_to', 'induced',
+		OUT <- splitpart(OUT, 'due_to', 'induced',
 			CDB$SCT_cause, SOURCE = CDB$OTHERCAUSE, reverse = TRUE)
-		OUT <- splitpart(OUT, x, 'due_to', 'due to|caused by')
+		OUT <- splitpart(OUT, 'due_to', 'due to|caused by')
 
 		# WITH
-		OUT <- splitpart(OUT, x, 'with', 'associated with', CDB$SCT_assoc)
-		OUT <- splitpart(OUT, x, 'with', 'co-occurrent with|and')
-		OUT <- splitpart(OUT, x, 'with', 'with|in')
-		OUT <- splitpart(OUT, x, 'with', 'associated',
+		OUT <- splitpart(OUT, 'with', 'associated with', CDB$SCT_assoc)
+		OUT <- splitpart(OUT, 'with',
+			'cooccurrent with|co-occurrent with|and')
+		OUT <- splitpart(OUT, 'with', 'with|in')
+		OUT <- splitpart(OUT, 'with', 'associated',
 			SOURCE = CDB$CAUSES, reverse = TRUE)
 
 		# AFTER
-		OUT <- splitpart(OUT, x, 'after',
+		OUT <- splitpart(OUT, 'after',
 			'due to and following|as a sequela of|as a late effect of',
 			CDB$SCT_after, SOURCE = CDB$CAUSES)
-		OUT <- splitpart(OUT, x, 'after', 'following|after',
+		OUT <- splitpart(OUT, 'after', 'following|after',
 			CDB$SCT_after, SOURCE = CDB$CAUSES)
-		OUT <- splitpart(OUT, x, 'after', 'following|after')
+		OUT <- splitpart(OUT, 'after', 'following|after')
 
 		
 		# WITHOUT
-		OUT <- splitpart(OUT, x, 'without', 'without|but without')
+		OUT <- splitpart(OUT, 'without', 'without|but without')
 	
 		OUT
 	}
-	
+
 	C <- do_splitparts(the_conceptId, text)
 	# Now C is a data.table with lines - one for each split version.
 	# If there is no data in C, include the original term description
@@ -328,8 +364,8 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		# Returns a data.table containing the original DATALINE and
 		# optionally additional data lines with decompositions by
 		# searching for different ancestors
-		ANC <- A[, list(use = DATALINE$text %like% term, conceptId, term),
-			by = .I][use == TRUE, list(conceptId, term)]
+		use <- sapply(A$term, function(x) DATALINE$text %like% x)
+		ANC <- A[use == TRUE, list(conceptId, term)]
 		if (nrow(ANC) > 0){
 			return(rbindlist(lapply(1:nrow(ANC), function(x){
 				new_text <- sub(ANC[x]$term, repl_(ANC[x]$term), DATALINE$text)
@@ -344,9 +380,10 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 				message('\nNo valid ancestors, trying morphologies')
 			}
 			if (nrow(CDB$MORPH) > 0){
-				ANC <- CDB$MORPH[, list(use = DATALINE$text %like% term,
-					conceptId, term), by = .I][use == TRUE,
-					list(conceptId, term)]
+				use <- sapply(CDB$MORPH$term, function(x){
+					DATALINE$text %like% x
+				})
+				ANC <- CDB$MORPH[use == TRUE, list(conceptId, term)]
 			}
 			if (nrow(ANC) > 0){
 				return(rbindlist(lapply(1:nrow(ANC), function(x){
@@ -390,6 +427,7 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		#   as well as the concept matched by text matching. 
 		#   Set to FALSE if the original SNOMED concept has more than
 		#   one body site, as the wrong one may be matched.
+		#   Currently switched off as it is sometimes incorrect
 		# 
 		# Returns a data.table containing the original DATALINE and
 		# optionally additional data lines with decompositions by
@@ -402,9 +440,10 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		# as part of concept or as an additional attribute
 		if (nrow(B) > 0){
 			# Subset of body sites that match with this term
-			BOD <- B[, list(use = DATALINE$other_attr %like% term,
-				conceptId, term, required_laterality), by = .I][
-				use == TRUE, list(conceptId, term, required_laterality)]
+			use <- sapply(B$term, function(x){
+				DATALINE$other_attr %like% x
+			})
+			BOD <- B[use == TRUE, list(conceptId, term, required_laterality)]
 			if (nrow(BOD) > 0){
 				return(rbindlist(lapply(1:nrow(BOD), function(x){
 					# Is laterality included in the concept or
@@ -423,10 +462,11 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 							CDB$latConcepts[
 							BOD[x]$required_laterality]]
 						if (nrow(LATSELECT) > 0){
-							LATSELECT <- LATSELECT[, list(use = 
-								DATALINE$other_attr %like% term,
-								conceptId, term), by = .I][
-								use == TRUE, list(conceptId, term)]
+							use <- sapply(LATSELECT$term, function(x){
+								DATALINE$other_attr %like% x
+							})
+							LATSELECT <- LATSELECT[use == TRUE,
+								list(conceptId, term)]
 						}
 						if (nrow(LATSELECT) > 0){
 							# Only permit one row for simplicity
@@ -473,12 +513,22 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 
 	# Candidates for body site match (must have same laterality as
 	# base concept)
-	body_siteIds <- relatedConcepts(the_conceptId,
-		typeId = CDB$SCT_findingsite, SNOMED = SNOMED)
+	body_siteIds <- setdiff(relatedConcepts(the_conceptId,
+		typeId = CDB$SCT_findingsite, SNOMED = SNOMED),
+		SNOMEDconcept(c('91689009', '278195005', '714488006',
+		'91690000'), SNOMED = SNOMED))
+	# Remove vague body sites:
+	# 91689009 | Body system structure (body structure)
+	# 278195005 | Entire body system (body structure)
+	# 714488006 | Structure of subdivision of organ system (body structure)
+	# 91690000 | Entire subdivision of organ system (body structure)
+	
 	# the_body_siteId should only be one but a few concepts have
 	# multiple body sites, so allow multiple
 	body_siteTerms <- paste0(' ',
-		tolower(description(body_siteIds, SNOMED = SNOMED)$term))
+		tolower(SNOMED$DESCRIPTION[conceptId %in% body_siteIds &
+		typeId == bit64::as.integer64('900000000000003001') &
+		active == TRUE]$term))
 
 	if (length(body_siteIds) > 0){
 		if (length(body_siteIds) == 2 &
@@ -510,7 +560,12 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 
 			TEMP <- rbindlist(lapply(1:nrow(C), function(x){
 				if (length(body_siteIds) == 1){
-					e_body(C[x], B, body_siteIds, inc_modelled = TRUE)
+					# e_body(C[x], B, body_siteIds, inc_modelled = TRUE)
+					# inc_modelled is switched off as the modelled
+					# SNOMED CT body location is sometimes incorrect
+					# e.g. 'Pain in female pelvis' finding site = 
+					# '609617007 | Structure of pelvic segment of trunk'
+					e_body(C[x], B, body_siteIds, inc_modelled = FALSE)
 				} else {
 					rbindlist(lapply(body_siteIds, function(body_siteId){
 						e_body(C[x], B, body_siteId, inc_modelled = FALSE)
@@ -546,9 +601,10 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 			for (i in seq_along(the_causeIds)){
 				CAU <- CDB$CAUSES[conceptId %in% the_causeIds[i]]
 				if (nrow(CAU) > 0){
-					CAU <- CAU[, list(use = DATALINE$other_attr %like% term,
-						conceptId, term), by = .I][use == TRUE,
-						list(conceptId, term)]
+					use <- sapply(CAU$term, function(x){
+						DATALINE$other_attr %like% x
+					})
+					CAU <- CAU[use == TRUE, list(conceptId, term)]
 				}
 				if (nrow(CAU) > 0){
 					DATALINE <- rbindlist(lapply(1:nrow(CAU), function(x){
@@ -577,10 +633,11 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 
 	e_severity <- function(DATALINE){
 		# Returns a data.table containing the original DATALINE and
-		# with severity information extracted. 
-		SEV <- CDB$SEVERITY[,
-			list(use = DATALINE$other_attr %like% term, conceptId, term),
-			by = .I][use == TRUE, list(conceptId, term)]
+		# with severity information extracted.
+		use <- sapply(CDB$SEVERITY$term, function(x){
+			DATALINE$other_attr %like% x
+		})
+		SEV <- CDB$SEVERITY[use == TRUE, list(conceptId, term)]
 		if (nrow(SEV) > 0){
 			return(rbindlist(lapply(1:nrow(SEV), function(x){
 				new_text <- sub(SEV[x]$term, repl_(SEV[x]$term),
@@ -609,9 +666,10 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 	e_stage <- function(DATALINE){
 		# Returns a data.table containing the original DATALINE and
 		# with stage information extracted.
-		STA <- CDB$STAGE[,
-			list(use = DATALINE$other_attr %like% term, conceptId, term),
-			by = .I][use == TRUE, list(conceptId, term)]
+		use <- sapply(CDB$STAGE$term, function(x){
+			DATALINE$other_attr %like% x
+		})
+		STA <- CDB$STAGE[use == TRUE, list(conceptId, term)]
 		if (nrow(STA) > 0){
 			return(rbindlist(lapply(1:nrow(STA), function(x){
 				new_text <- sub(STA[x]$term, repl_(STA[x]$term),
@@ -652,12 +710,14 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		# Loop until i reaches the end of other_attr
 		while (i < length(the_other_attr)){
 			# Advance to first word
-			while (i < length(the_other_attr) & the_other_attr[i] == '@'){
+			while (i < length(the_other_attr) &
+				the_other_attr[i] == '@'){
 				i <- i + 1
 			}
 			j <- i
 			# Locate end of phrase
-			while (j < length(the_other_attr) & the_other_attr[j] != '@'){
+			while (j < length(the_other_attr) &
+				the_other_attr[j] != '@'){
 				j <- j + 1
 			}
 			# Try to match sequence to a SNOMED concept
@@ -666,22 +726,27 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 				j <- j - 1
 				to_match <- paste0(' ', paste(the_other_attr[i:j],
 					collapse = ' '), ' ')
-				# search separately QUAL, FINDINGS, CAUSES, BODY
-				OTHERSEARCH <- rbindlist(lapply(
-					c('QUAL', 'FINDINGS', 'CAUSES', 'BODY'),
-					function(x){
-						get(x, envir = CDB)[conceptId %in%
-						relevant_conceptId, list(conceptId, term)]
-					}))
-				if (nrow(OTHERSEARCH) > 0){
-					if (to_match %in% OTHERSEARCH$term){
-						match <- TRUE
-						DATALINE[, other_conceptId := paste(other_conceptId,
-							paste(
-							unique(OTHERSEARCH[term == to_match]$conceptId),
+				OTHER <- rbind(
+					CDB$QUAL[term %in% to_match, list(conceptId, term)],
+					CDB$FINDINGS[term %in% to_match &
+						conceptId %in% relevant_conceptId &
+						!(conceptId %in% c(DATALINE$rootId,
+						DATALINE$partId)), list(conceptId, term)],
+					CDB$CAUSES[term %in% to_match &
+						conceptId %in% relevant_conceptId &
+						!(conceptId %in% c(DATALINE$rootId,
+						DATALINE$partId)), list(conceptId, term)],
+					CDB$BODY[term %in% to_match &
+						conceptId %in% relevant_conceptId &
+						!(conceptId %in% DATALINE$body_site),
+						list(conceptId, term)])
+				if (nrow(OTHER) > 0){
+					match <- TRUE
+					DATALINE[, other_conceptId :=
+						paste(other_conceptId,
+							paste(unique(OTHER$conceptId),
 							collapse = '|'))]
-						i <- j
-					}
+					i <- j
 				}
 			}
 			if (match == FALSE){
@@ -721,9 +786,14 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 	C <- C[!(rootId == origId)]
 	
 	# Remove any entries where other_conceptId is not matched to a
-	# SNOMED CT concept
+	# SNOMED CT concept or if there are no attributes, or if the concept
+	# itself it included as an attribute
 	if (omit_unmatched){
 		C <- C[!(other_conceptId %like% '[A-Za-z]')]
+		C <- C[!is.na(with) | !is.na(due_to) | !is.na(after) |
+			!is.na(without) | !is.na(body_site) | !is.na(severity) |
+			!is.na(stage) | !is.na(laterality) |
+			other_conceptId %like% '[0-9]']
 	}
 	
 	# Now expand where there are alternative entries
@@ -742,7 +812,9 @@ decompose <- function(conceptIds, diagnosis_text = NULL, CDB,
 		C <- C[!duplicated(C)]
 	}
 	C[, other_conceptId := gsub('^ +| +$', '', other_conceptId)]
-	
+	C[, other_attr := NULL]
+	C[, parttext := NULL]
+	C <- C[!duplicated(C)]
 	setattr(C, 'class', c('SNOMEDfindings', 'data.table', 'data.frame'))
 	C
 }
@@ -765,37 +837,6 @@ matchpos <- function(bigvector, smallvector){
 		return(NULL)
 	}
 }
-
-# old version of test function
-#~ test_decompose <- function(the_conceptId, CDB = NULL,
-#~ 	diagnosis_text = NULL, SNOMED = getSNOMED(), noisy = FALSE){
-#~ 	the_conceptId <- as.SNOMEDconcept(the_conceptId, SNOMED = SNOMED)
-#~ 	if (length(the_conceptId) == 0){
-#~ 		stop('No SNOMED concept')
-#~ 	}
-#~ 	if (is.null(CDB)){
-#~ 		CDB <- get('CDB', envir = globalenv())
-#~ 		if (is.null(CDB)){
-#~ 			stop('No CDB provided')
-#~ 		} else {
-#~ 			message('Using object named "CDB" from global environment')
-#~ 		}
-#~ 	}
-#~ 	if (is.null(diagnosis_text)){
-#~ 		texts <- description(the_conceptId, SNOMED = SNOMED,
-#~ 			include_synonyms = TRUE)[type == 'Synonym']$term
-#~ 	} else {
-#~ 		texts <- diagnosis_text
-#~ 	}
-	
-#~ 	cat('\nDecomposition of ', as.character(the_conceptId), ':\n')
-#~ 	for (diagnosis_text in texts){
-#~ 		cat('\n\n', diagnosis_text, '\n')
-#~ 		print(decompose(
-#~ 			the_conceptId, diagnosis_text, SNOMED = SNOMED,
-#~ 			CDB = CDB, noisy = noisy))
-#~ 	}
-#~ }
 
 #' Print method for output of 'decompose' function
 #'
@@ -875,24 +916,26 @@ print.SNOMEDfindings <- function(x, ...){
 				}
 			}
 		}
+		show('body_site')
+		show('severity')
+		show('stage')
+		show('laterality')
 		show('with')
 		show('due_to')
 		show('causing')
 		show('after')
 		show('without')
-		show('body_site')
-		show('severity')
-		show('stage')
-		show('laterality')
 		show('attributes')
 		if ('other_conceptId' %in% names(D)){
 			# other conceptIds as a character vector 
 			# (used for CSV file import / export)
-			if (D[i]$other_conceptId != ''){
-				cat('\n- Other attributes :')
-				attributes <- strsplit(D[i]$other_conceptId, ' ')[[1]]
-				for (j in 1:length(attributes)){
-					cat('\n  -', show_concept(attributes[j], 4))
+			if (!is.na(D[i]$other_conceptId)){
+				if (D[i]$other_conceptId != ''){
+					cat('\n- Other attributes :')
+					attributes <- strsplit(D[i]$other_conceptId, ' ')[[1]]
+					for (j in 1:length(attributes)){
+						cat('\n  -', show_concept(attributes[j], 4))
+					}
 				}
 			}
 		}

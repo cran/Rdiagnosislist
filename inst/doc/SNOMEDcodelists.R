@@ -1,7 +1,13 @@
 ## -----------------------------------------------------------------------------
+# Load packages
+require(Rdiagnosislist)
+require(data.table)
+
+# Use one thread only for CRAN
+data.table::setDTthreads(threads = 1)
+
 # The sampleSNOMED() function returns an environment containing
 # the sample dictionaries
-require(Rdiagnosislist)
 TEST <- sampleSNOMED()
 
 # TEST is now an environment containing the sample SNOMED CT dictionary.
@@ -83,7 +89,6 @@ children('Acute heart failure')
 descendants('Acute heart failure')
 
 ## -----------------------------------------------------------------------------
-require(Rdiagnosislist)
 SNOMED <- sampleSNOMED()
 
 # List all the attributes of a concept

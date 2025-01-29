@@ -1,29 +1,22 @@
 #' Creates a set of lookups for SNOMED composition
 #'
 #' Creates composition lookup table for a set of SNOMED CT concepts
+#' and exports the results to a file
 
 #' @param conceptIds SNOMED CT concept IDs for creating decompositions
 #' @param CDB concept database environment, containing a table called
 #'   FINDINGS 
 #' @param SNOMED environment containing a SNOMED dictionary
 #' @param output_filename filename of output file 
-#' @param ... out
+#' @param ... other arguments to pass through to decompose
 #' @return TRUE if successful 
+#' @family CDB functions
 #' @export
-#' @seealso decompose, compose, createComposeLookup
-#' @examples
-#' # Load the SNOMED dictionary (for this example we are using the
-#' # sample included with the package)
-#' SNOMED <- sampleSNOMED()
-#' # Create a concept database environment
-#' miniCDB <- createCDB(SNOMED = SNOMED)
-#' # Create a decomposition
-#' D <- decompose('Cor pulmonale', CDB = miniCDB, noisy = TRUE)
-#' print(D)
+#' @seealso decompose, compose, addComposeLookupToCDB
 batchDecompose <- function(conceptIds, CDB, output_filename,
 	SNOMED = getSNOMED(), ...){
 		
-	# Decare symls for R check
+	# Decare symbols for R check
 	origId <- NULL
 	
 	conceptIds <- as.SNOMEDconcept(conceptIds, SNOMED = SNOMED)
@@ -47,10 +40,11 @@ batchDecompose <- function(conceptIds, CDB, output_filename,
 	return(started)
 }
 
-#' Creates a set of lookups for SNOMED composition
+#' Add composition lookups to CDB
 #'
-#' Creates composition lookup table for a set of SNOMED CT concepts
-
+#' Creates a composition lookup table for a set of SNOMED CT concepts
+#' based on output of `decompose', and adds it to the CDB
+#' 
 #' @param decompositions vector of filenames of decompose output (read
 #'   by fread) or data.frame containing outputs of decompose function
 #' @param CDB concept database environment, containing a table called
@@ -62,20 +56,20 @@ batchDecompose <- function(conceptIds, CDB, output_filename,
 #'   possible SNOMED CT concept decompositions.
 #' @param SNOMED environment containing a SNOMED CT dictionary
 #' @param ... other arguments to pass to fread
-#' @return data.table 
+#' @return CDB environment with an additional data.table `COMPOSELOOKUP'
+#'   with columns rootId, attr_1 ... attr_X (up to
+#'   maxcol), with, due_to, without, origId (all with data type
+#'   integer64 and class 'SNOMEDconcept')
 #' @export
+#' @family CDB functions
 #' @seealso decompose, compose, batchDecompose
-#' @examples
-#' # Not run
-#'
-#' # mylookup <- createComposeLookup(D)
-createComposeLookup <- function(decompositions, CDB, maxcol = 10,
+addComposeLookupToCDB <- function(decompositions, CDB, maxcol = 10,
 	SNOMED = getSNOMED(), ...){
 		
 	# Declare symbols to avoid R check error
 	.temp <- rootId <- other_conceptId <- due_to <- after <- NULL
 	body_site <- severity <- stage <- laterality <- NULL
-	attrId <- freq <- rootId <- freq <- .temp2 <- NULL
+	attrId <- freq <- rootId <- freq <- .temp2 <- without <- NULL
 	
 	sct_concept_colnames <- c('rootId', 'with', 'due_to',
 		'after', 'without', 'body_site', 'severity', 'stage',
@@ -101,13 +95,16 @@ createComposeLookup <- function(decompositions, CDB, maxcol = 10,
 		setnames(D, '.temp', i)
 	}
 	
-	# Remove rows without rootId (i.e. without a valid decomposition)
-	D <- D[!is.na(rootId)]
-	
 	# Remove rows with outstanding text
 	D <- D[!(other_conceptId %like% '[[:alpha:]]')]
 	D[, other_conceptId := gsub('^ +| +$', '', other_conceptId)]
-	
+
+	# Remove rows without rootId or without a valid decomposition
+	D <- D[!is.na(rootId)]
+	D <- D[!(is.na(with) & is.na(due_to) & is.na(after) &
+		is.na(without) & is.na(body_site) & is.na(severity) &
+		is.na(stage) & is.na(laterality) & other_conceptId == '')]
+
 	# Separate due to findings; due to anything else is other_attr
 	D[!(due_to %in% CDB$FINDINGS$conceptId) & !is.na(due_to),
 		other_conceptId := paste(due_to, other_conceptId)]
@@ -169,12 +166,13 @@ createComposeLookup <- function(decompositions, CDB, maxcol = 10,
 		setnames(D, '.temp2', paste0('attr_', i))
 		D[, .temp := NULL]
 	}
-	cols_to_keep <- c('rootId', 'with', 'due_to', 'without',
-		paste0('attr_', 1:maxcol), 'origId')
+	cols_to_keep <- c('rootId', paste0('attr_', 1:maxcol), 
+		'with', 'due_to', 'without', 'origId')
 	D <- subset(D, select = cols_to_keep)
 	D <- D[!duplicated(D)]
 	setorderv(D, cols_to_keep)
 	setkeyv(D, cols_to_keep)
 	for (i in cols_to_keep) setindexv(D, i)
-	D
+	CDB$COMPOSELOOKUP <- D
+	CDB
 }

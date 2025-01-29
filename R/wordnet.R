@@ -1,7 +1,7 @@
 #' Download WordNet to assist concept database creation
 #'
 #' Downloads the WordNet thesaurus and converts it into a format to be
-#' used by addWordNet to add extra synonyms to a concept database.
+#' used by addWordnet to add extra synonyms to a concept database.
 #'
 #' @param wordnet_url URL or filepath to WordNet tar.gz file
 #' @param wn_categories WordNet categories from which to extract data
@@ -9,7 +9,8 @@
 #'   categories, in the format: cat (character), wordnetId (integer64),
 #'   synonyms (list), parents (list), adj (list)
 #' @export
-#' @seealso [addWordNet()]
+#' @seealso addWordnet
+#' @family CDB functions
 #' @references \url{https://wordnet.princeton.edu/}
 #' @examples
 #' # Not run
@@ -130,8 +131,8 @@ downloadWordnet <- function(
 #' ensure that words with multiple meanings are not linked to the wrong
 #' synonym. This function also corrects some known errors in WordNet to
 #' avoid them being passed on to the CDB; currently this applies to 
-#' 'allergy = allergic reaction' and 'cuneiform bone = triquetral'
-#' but more corrections can be done if needed.
+#' 'allergy = allergic reaction', 'cuneiform bone = triquetral'
+#' and 'trauma' = 'injury', but more corrections can be done if needed.
 #'
 #' @param CDB_TABLE data.frame or data.table with columns
 #'   conceptId (integer64) and term (character, with space before
@@ -146,9 +147,11 @@ downloadWordnet <- function(
 #'   containing synonym pairs to be removed. The first entry of the
 #'   pair will be removed from the WordNet file before it is used for
 #'   adding to CDB
+#' @param noisy whether to output test comments
 #' @return CDB_TABLE with extra rows for Wordnet synonyms
 #' @export
-#' @seealso [downloadWordnet()]
+#' @seealso downloadWordnet
+#' @family CDB functions
 #' @references \url{https://wordnet.princeton.edu/}
 #' @examples
 #' WORDNET <- data.table::data.table(cat = c('noun.body', 'noun.state'),
@@ -168,14 +171,20 @@ addWordnet <- function(CDB_TABLE, wn_categories, WN,
 	CHECK_TABLE = NULL, errors_to_remove = list(
 	c('allergy', 'allergic reaction'),
 	c('allergic', 'allergic reaction'),
+	c('trauma', 'injury'),
+	c('traumatic', 'injury'),
+	c('skinny', 'skin'),
 	c('cuneiform bone', 'triquetral bone'),
 	c('upset', 'disorder'),
-	c('disorderliness', 'disorder'))){
+	c('disorderliness', 'disorder')), noisy = TRUE){
 		
 	# Define symbols for R check
 	term <- synonyms <- cat <- conceptId <- wordnetId <- NULL
-	already <- NULL
+	OK <- conceptIds_WN <- conceptIds <- NULL
 	
+	if (noisy) message('Adding categories for ', paste0(wn_categories,
+		collapse = ', '))
+
 	D <- as.data.table(CDB_TABLE)
 	WNLONG <- WN[cat %in% wn_categories, list(term = synonyms[1][[1]]),
 		by = wordnetId]
@@ -183,51 +192,69 @@ addWordnet <- function(CDB_TABLE, wn_categories, WN,
 	WNLONG[, term := paste0(' ', gsub('_', ' ', term), ' ')]
 	
 	# Correct known errors in Wordnet
-	remove <- function(word_to_remove, base_word){
-		word_to_remove <- paste0(' ', gsub('^ +| $', '', word_to_remove), ' ')
+	remove <- function(WNLONG, word_to_remove, base_word){
+		word_to_remove <- paste0(' ', gsub('^ +| $', '',
+			word_to_remove), ' ')
 		base_word <- paste0(' ', gsub('^ +| $', '', base_word), ' ')
 		TOREMOVE <- WNLONG[wordnetId %in%
 			WNLONG[term %in% base_word]$wordnetId][
 			term %in% word_to_remove]
 		if (nrow(TOREMOVE) > 0){
+			message('Removing ', word_to_remove, ' from ',
+				nrow(TOREMOVE), ' synonym relations.')
 			WNLONG[!(wordnetId %in% TOREMOVE$wordnetId &
 				term %in% word_to_remove)]
 		} else {
 			WNLONG
 		}
 	}
-	for (i in length(errors_to_remove)){
-		WNLONG <- remove(errors_to_remove[[i]][1],
+	
+	for (i in 1:length(errors_to_remove)){
+		WNLONG <- remove(WNLONG, errors_to_remove[[i]][1],
 			errors_to_remove[[i]][2])
 	}
 	
 	# Match up WNLONG with SNOMED CT concepts by term
-	MERGED <- merge(WNLONG, D[!duplicated(D)], by = 'term')
-	MERGED <- MERGED[!duplicated(MERGED)]
+	MERGELINK <- merge(WNLONG, D[!duplicated(D)], by = 'term')
+	MERGELINK <- MERGELINK[!duplicated(MERGELINK)]
+	setindexv(MERGELINK, 'term')
 	
 	# Filter to WordNet ID groups that contain at least one member not
 	# linked to an existing SNOMED CT description
 	if (is.null(CHECK_TABLE)){
-		CHECK_TABLE <- D[0]
+		CHECK_TABLE <- D
 	} else {
 		CHECK_TABLE <- as.data.table(CHECK_TABLE)[,
 			list(conceptId, term)]
 	}
-	CHECK <- merge(WNLONG, rbind(D[!duplicated(D)],
-		CHECK_TABLE[!duplicated(CHECK_TABLE)]), by = 'term',
-		all.x = TRUE, allow.cartesian = TRUE)
-	CHECK[, already := all(!is.na(conceptId)), by = wordnetId]
-	
-	# Do not use WordNet matches where all terms already in SNOMED CT
-	MERGELINK <- MERGED[!(wordnetId %in% CHECK[already == TRUE]$wordnetId),
-		list(wordnetId, conceptId)]
-	MERGELINK <- MERGELINK[!duplicated(MERGELINK)]
-	
-	# Replace WNLONG concept IDs with SNOMED concept IDs
-	MERGELINK <- merge(MERGELINK, WNLONG)[,
-		list(conceptId, term)]
+	setindexv(CHECK_TABLE, c('term', 'conceptId'))
+
+	# Omit synonym groups that link to two or more distinct SNOMED
+	# concepts that do not already share a synonym
+	EXISTING_SYNGROUPS <- CHECK_TABLE[, list(conceptId), by = term]
+	EXISTING_SYNGROUPS[, conceptId := as.character(conceptId)]
+	setkeyv(EXISTING_SYNGROUPS, c('term', 'conceptId'))
+	EXISTING_SYNGROUPS <- EXISTING_SYNGROUPS[
+		!duplicated(EXISTING_SYNGROUPS)]
+	EXISTING_SYNGROUPS <- EXISTING_SYNGROUPS[,
+		list(conceptIds = list(conceptId)), by = term]
+	MERGELINK_SYNGROUPS <- MERGELINK[, list(conceptIds_WN = list(
+		sort(unique(as.character(conceptId))))),
+		by = term]
+	MERGELINK_SYNGROUPS <- merge(MERGELINK_SYNGROUPS,
+		EXISTING_SYNGROUPS, by = 'term')
+	MERGELINK_SYNGROUPS[, OK := length(setdiff(conceptIds_WN[[1]],
+		conceptIds[[1]])) == 0, by = term]
+
+	# Remove any synonyms groups from Wordnet that contain more
+	# SNOMED CT concepts than the synonym sets in SNOMED CT itself
+	# i.e. avoid introducing new erroneous links
+	MERGELINK <- MERGELINK[!(as.character(conceptId) %in% 
+		unlist(lapply(MERGELINK_SYNGROUPS[OK == FALSE]$conceptIds_WN,
+		function(x) as.character(x))))]
 	
 	# Add WN synonyms
-	D <- rbind(D, MERGELINK[conceptId %in% D$conceptId])
-	return(D[!duplicated(D)])
+	D <- rbind(D, MERGELINK[conceptId %in% D$conceptId,
+		list(conceptId, term)], fill = TRUE)
+	D[!duplicated(D)]
 }

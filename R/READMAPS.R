@@ -1,4 +1,4 @@
- #' Sample mappings from Read to SNOMED CT
+#' Sample mappings from Read to SNOMED CT
 #'
 #' A sample of a mapping table derived from NHS Digital maps. 
 #' Contains concepts in Read Clinical Terms Version 2 and 
@@ -24,6 +24,7 @@
 #'   \item{ctv3_termid}{ list: character list of CTV3 term description codes}
 #' }
 #' 
+#' @family sampleSNOMED
 #' @seealso loadREADMAPS, getMaps
 #' @examples
 #' # Show properties of the READMAPS table

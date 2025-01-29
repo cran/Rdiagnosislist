@@ -1,5 +1,10 @@
 ## -----------------------------------------------------------------------------
 library(Rdiagnosislist)
+require(data.table)
+
+# Use one thread only for CRAN
+data.table::setDTthreads(threads = 1)
+
 SNOMED <- sampleSNOMED()
 
 # Create a codelist for right heart failure
@@ -8,9 +13,6 @@ rhf <- SNOMEDcodelist('Right heart failure', include_desc = TRUE)
 addInactiveConcepts(rhf)
 
 ## -----------------------------------------------------------------------------
-library(data.table)
-library(Rdiagnosislist)
-
 oldReadCodelist <- fread('
 readcode|readterm
 G54z500|Valvular heart disease"                     

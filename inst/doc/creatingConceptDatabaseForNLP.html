@@ -12,7 +12,7 @@
 
 <meta name="author" content="Anoop Shah" />
 
-<meta name="date" content="2024-10-28" />
+<meta name="date" content="2025-01-28" />
 
 <title>Converting concept database for natural language processing</title>
 
@@ -301,7 +301,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Converting concept database for natural language processing</h1>
 <h4 class="author">Anoop Shah</h4>
-<h4 class="date">2024-10-28</h4>
+<h4 class="date">2025-01-28</h4>
 
 
 
@@ -325,13 +325,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>A future version of MiADE will be able to detect diagnosis attributes such as severity and body site separately to the pathology, and then combine them into the most precise and accurate SNOMED CT concept available.</p>
 <p>The first stage is to create ‘decompositions’ of SNOMED CT concepts, which uses the SNOMED CT concept model as well as text parsing to decompose a concept into components in a number of different ways. Example code is given below.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(Rdiagnosislist)</a>
-<a class="sourceLine" id="cb1-2" title="2"></a>
-<a class="sourceLine" id="cb1-3" title="3"><span class="co"># Load the SNOMED dictionary (for this example we are using the</span></a>
-<a class="sourceLine" id="cb1-4" title="4"><span class="co"># sample included with the package)</span></a>
-<a class="sourceLine" id="cb1-5" title="5">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">require</span>(data.table)</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co"># Use one thread only for CRAN</span></a>
+<a class="sourceLine" id="cb1-5" title="5">data.table<span class="op">::</span><span class="kw">setDTthreads</span>(<span class="dt">threads =</span> <span class="dv">1</span>)</a>
 <a class="sourceLine" id="cb1-6" title="6"></a>
-<a class="sourceLine" id="cb1-7" title="7"><span class="co"># Create a concept database environment</span></a>
-<a class="sourceLine" id="cb1-8" title="8">miniCDB &lt;-<span class="st"> </span><span class="kw">createCDB</span>(<span class="dt">SNOMED =</span> SNOMED)</a></code></pre></div>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co"># Load the SNOMED dictionary (for this example we are using the</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co"># sample included with the package)</span></a>
+<a class="sourceLine" id="cb1-9" title="9">SNOMED &lt;-<span class="st"> </span><span class="kw">sampleSNOMED</span>()</a>
+<a class="sourceLine" id="cb1-10" title="10"></a>
+<a class="sourceLine" id="cb1-11" title="11"><span class="co"># Create a concept database environment</span></a>
+<a class="sourceLine" id="cb1-12" title="12">miniCDB &lt;-<span class="st"> </span><span class="kw">createCDB</span>(<span class="dt">SNOMED =</span> SNOMED)</a></code></pre></div>
 <pre><code>## Initialising causes.</code></pre>
 <pre><code>## Creating transitive closure table.</code></pre>
 <pre><code>## Transitive closure table created, 5094 rows.</code></pre>
@@ -384,7 +388,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## 1:       &lt;NA&gt;       @ @   cor pulmonale  83291003</code></pre>
 <pre><code>## 
 ## Decomposing 83291003:  right heart failure due to disorder of lung</code></pre>
-<pre><code>## Splitting due_to at due to|caused by</code></pre>
+<pre><code>## Attempting to split by due_to at due to|caused by</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Attempting to split by due_to at due to|caused by</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Successful split by due_to at due to|caused by with SNOMED type as</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Remaining text: right heart failure</code></pre>
 <pre><code>## 
 ## After splitting by parts</code></pre>
 <pre><code>##    parttext    rootId  with   due_to after without body_site severity stage
@@ -459,7 +469,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## 6:</code></pre>
 <pre><code>## 
 ## Decomposing 83291003:  right heart failure due to pulmonary disease</code></pre>
-<pre><code>## Splitting due_to at due to|caused by</code></pre>
+<pre><code>## Attempting to split by due_to at due to|caused by</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Attempting to split by due_to at due to|caused by</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Successful split by due_to at due to|caused by with SNOMED type as</code></pre>
+<pre><code>## Linked: Disorder of lung (disorder)</code></pre>
+<pre><code>## Remaining text: right heart failure</code></pre>
 <pre><code>## 
 ## After splitting by parts</code></pre>
 <pre><code>##    parttext    rootId  with   due_to after without body_site severity stage
@@ -532,20 +548,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## 4:                
 ## 5:                
 ## 6:</code></pre>
-<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb45-1" title="1"><span class="kw">print</span>(D)</a></code></pre></div>
+<div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb57-1" title="1"><span class="kw">print</span>(D)</a></code></pre></div>
 <pre><code>## 
-## --------------------------------------------------------------------------------
-## 83291003 | Cor pulmonale (disorder)
-## --------------------------------------------------------------------------------
-## Root : 128404006 | Right heart failure (disorder)
-## - Due to : 19829001 | Disorder of lung (disorder)
-## 
-## --------------------------------------------------------------------------------
-## 83291003 | Cor pulmonale (disorder)
-## --------------------------------------------------------------------------------
-## Root : 367363000 | Right ventricular failure (disorder)
-## - Due to : 19829001 | Disorder of lung (disorder)
-## 
 ## --------------------------------------------------------------------------------
 ## 83291003 | Cor pulmonale (disorder)
 ## --------------------------------------------------------------------------------
@@ -562,7 +566,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li>Create the SNOMED and CDB objects as per above.</li>
 <li>Select the set of SNOMED CT concepts for which to create decompositions.</li>
 <li>Use the batchDecompose() function (note: this can take a long time to run), in our test it took about 10 days on a standard PC to decompose all SNOMED CT findings.</li>
-<li>Use the createComposeLookup() lookup to convert the decompositions into a lookup table which is optimised for fast search.</li>
+<li>Use addComposeLookupToCDB() lookup to convert the decompositions into a lookup table which is optimised for fast search, and add it to the CDB.</li>
 </ol>
 <p>The compose lookup table can now be used to refine SNOMED CT concepts using compose(), which selects a more specific concept based on supplied attributes.</p>
 <p>Example code:</p>
@@ -578,12 +582,11 @@ batchDecompose(disorders, CDB = CDB, SNOMED = SNOMED,
   output_filename = &#39;path_to_decompositions.csv&#39;)
 
 # Create composition lookup
-CL &lt;- createComposeLookup(&#39;path_to_decompositions.csv&#39;,
+CDB &lt;- addComposeLookupToCDB(&#39;path_to_decompositions.csv&#39;,
   CDB = CDB, SNOMED = SNOMED)
 
 # Test the decomoposition table to refine a SNOMED CT concept
-compose(conceptId = as.SNOMEDconcept(&#39;Fracture&#39;),
-  CDB = CDB, composeLookup = CL,
+compose(conceptId = as.SNOMEDconcept(&#39;Fracture&#39;), CDB = CDB,
   attributes_conceptIds = as.SNOMEDconcept(c(&#39;Open&#39;, &#39;Femur&#39;)),
   due_to_conceptIds = bit64::integer64(0),
   without_conceptIds = bit64::integer64(0),

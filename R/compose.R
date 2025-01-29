@@ -7,8 +7,9 @@
 #' @param conceptId SNOMED CT concept to refine
 #' @param CDB SNOMED CT concept database, as created by createCDB.
 #'   An environment containing the following data tables: FINDINGS,
-#'   QUAL, CAUSES, BODY, FINDINGS, OTHERSUB, OVERLAP, TRANSITIVE
-#' @param composeLookup lookup table created by createComposeLookup
+#'   QUAL, CAUSES, BODY, FINDINGS, OTHERSUB, OVERLAP, TRANSITIVE.
+#'   Must also contain a COMPOSELOOKUP table created by
+#'   addComposeLookupToCDB
 #' @param attributes_conceptIds SNOMED concept Ids of attributes of concept
 #'   e.g. laterality, severity, acuteness
 #' @param due_to_conceptIds SNOMED concept Ids of cause
@@ -16,11 +17,10 @@
 #'   absent
 #' @param with_conceptIds SNOMED concept Ids of conditions also present
 #' @param SNOMED environment containing SNOMED CT tables
-#' @param show_all_matches whether to stop if an exact match is found,
-#'   or continue to search for all potential matches
 #' @return a refined SNOMED concept Id
-#' @seealso decompose, batchDecompose, createComposeLookup
+#' @seealso decompose, batchDecompose, addComposeLookupToCDB
 #' @examples
+#' \dontrun{
 #' SNOMED <- sampleSNOMED()
 #' miniCDB <- createCDB(SNOMED)
 #' 
@@ -30,36 +30,36 @@
 #' # --------------------------------------------------------
 #' # 83291003 | Cor pulmonale (disorder)
 #' # --------------------------------------------------------
-#' # Root : 128404006 | Right heart failure (disorder)
-#' # - Due to : 19829001 | Disorder of lung (disorder)
-#' #
-#' # --------------------------------------------------------
-#' # 83291003 | Cor pulmonale (disorder)
-#' # --------------------------------------------------------
 #' # Root : 367363000 | Right ventricular failure (disorder)
 #' # - Due to : 19829001 | Disorder of lung (disorder)
 #'
 #' # Compile decompositions into a lookup table
-#' CL <- createComposeLookup(D, CDB = miniCDB)
+#' miniCDB <- addComposeLookupToCDB(D, CDB = miniCDB))
 #' 
 #' compose(as.SNOMEDconcept('Right heart failure'),
 #'   due_to_conceptIds = as.SNOMEDconcept('Disorder of lung'),
 #'   CDB = miniCDB, composeLookup = CL)
 #' # [1] "83291003 | Cor pulmonale (disorder)"
+#' }
 #' @export
-compose <- function(conceptId, CDB, composeLookup,
+compose <- function(conceptId, CDB,
 	attributes_conceptIds = bit64::integer64(0),
 	due_to_conceptIds = bit64::integer64(0),
 	without_conceptIds = bit64::integer64(0),
 	with_conceptIds = bit64::integer64(0),
-	SNOMED = getSNOMED(), show_all_matches = FALSE){
+	SNOMED = getSNOMED()){
 	
+	if (is.null(CDB$COMPOSELOOKUP)){
+		stop(paste0('CDB requires a composition lookup table to be\n',
+			'added using addComposeLookupToCDB.'))
+	}
+
 	NA_concept <- bit64::as.integer64(NA)
 	setattr(NA_concept, 'class', c('SNOMEDconcept', 'integer64'))
 	
 	# Declare symbols to avoid R check error
 	findingId <- otherId <- rootId <- without <- NULL
-	due_to <- attr_1 <- NULL
+	due_to <- attr_1 <- multipart <- origId <- NULL
 	
 	# Harmonise and append NA for each attribute
 	expand <- function(x){
@@ -68,11 +68,18 @@ compose <- function(conceptId, CDB, composeLookup,
 		} else {
 			x <- as.SNOMEDconcept(x, SNOMED = SNOMED)
 		}
-		x <- unique(c(x,
+		x <- add_overlap(x)
+		out <- ancestors(x, SNOMED = SNOMED, TRANSITIVE = CDB$TRANSITIVE)
+		# For body site concepts, remove ancestor concepts with 'and'
+		# or 'or'
+		return(union(x, setdiff(out, CDB$BODY[
+			multipart == TRUE]$conceptId)))
+	}
+	
+	add_overlap <- function(x){
+		unique(c(x,
 			CDB$OVERLAP[findingId %in% x]$otherId,
 			CDB$OVERLAP[otherId %in% x]$findingId))
-		ancestors(x, SNOMED = SNOMED,
-			TRANSITIVE = CDB$TRANSITIVE, include_self = TRUE)
 	}
 	
 	harmonise <- function(x, limitToFindings = FALSE){
@@ -89,61 +96,62 @@ compose <- function(conceptId, CDB, composeLookup,
 	}
 	
 	# Ensure correct data types
+	conceptId <- as.SNOMEDconcept(conceptId, SNOMED = SNOMED)
+	
+	# Expand to include ancestors
 	due_to_search <- harmonise(due_to_conceptIds, TRUE)
-	attributes_exact <- union(union(as.SNOMEDconcept(
-		bit64::as.integer64(due_to_conceptIds)),
-		as.SNOMEDconcept(bit64::as.integer64(attributes_conceptIds))),
-		NA_concept)
-	attributes_search <- harmonise(attributes_exact)
+	attributes_search <- union(harmonise(attributes_conceptIds),
+		due_to_search)
 	without_search <- harmonise(without_conceptIds, TRUE)
 	with_search <- harmonise(with_conceptIds, TRUE)
+
+	# Expand root concept to include ancestors that are in
+	# composeLookup (in case they provide a wider variety of
+	# composition options)
+	root_search <- add_overlap(conceptId)
+	root_search <- union(root_search,
+		CDB$COMPOSELOOKUP[origId %in% root_search]$rootId)
 	
-	conceptId <- as.SNOMEDconcept(conceptId, SNOMED = SNOMED)
-	root_search <- expand(conceptId)
-	
-	# Find highest number of attribute fields in this composeLookup
-	SUBSET <- composeLookup[rootId %in% root_search &
-		without %in% without_search &
-		with %in% with_search &
-		due_to %in% due_to_search &
-		attr_1 %in% attributes_search]
-	SUBSET_EXACT <- SUBSET[attr_1 %in% attributes_exact]
+	# Create indexed data.table for fast lookup
+	LOOKUP <- data.table(expand.grid(root_search, attributes_search))
+	setnames(LOOKUP, c('rootId', 'attr_1'))
+	setkeyv(LOOKUP, c('rootId', 'attr_1'))
 	
 	# Find highest number of attribute fields in this composeLookup
 	max_attr <- max(as.numeric(sub('^attr_', '', 
-		names(composeLookup)[names(composeLookup) %like% '^attr_'])))
+		names(CDB$COMPOSELOOKUP)[
+		names(CDB$COMPOSELOOKUP) %like% '^attr_'])))
 	
-	if (max_attr > 1){
-		for (j in 2:max_attr){
-			attr_x_name <- paste0('attr_', j)
-			if (nrow(SUBSET) > 0){
-				SUBSET <- SUBSET[get(attr_x_name) %in% attributes_search]
-			}
-			# get() will create a warning if SUBSET_EXACT is an empty
-			# data.table
-			if (nrow(SUBSET_EXACT) > 0){
-				SUBSET_EXACT <- SUBSET_EXACT[get(attr_x_name) %in%
-					attributes_exact]
-			}
-		}
+	if (max_attr == 1){
+		SUBSET <- merge(CDB$COMPOSELOOKUP, LOOKUP)[
+			without %in% without_search &
+			with %in% with_search & due_to %in% due_to_search]
+	} else {
+		# This code could be simplified if number of attribute fields
+		# is fixed to 10
+		attr_text <- paste(paste0('attr_', 2:max_attr,
+				' %in% attributes_search &'), collapse = ' ')
+		SUBSET <- merge(CDB$COMPOSELOOKUP, LOOKUP)[eval(parse(text =
+			paste(attr_text, 'without %in% without_search &', 
+				'with %in% with_search & due_to %in% due_to_search')))]
 	}
 	
 	if (nrow(SUBSET) == 0){
 		return(conceptId)
 	}
-	
-	# Try for an exact match
-	matchIds <- unique(as.SNOMEDconcept(SUBSET_EXACT$origId,
+
+	# Retrieve valid compositions
+	matchIds <- unique(as.SNOMEDconcept(SUBSET$origId,
 		SNOMED = SNOMED))
-	
-	# If no exact match, return all possible matches
+
+	# Return original concept if no compositions
 	if (length(matchIds) == 0){
-		matchIds <- unique(as.SNOMEDconcept(SUBSET$origId,
-			SNOMED = SNOMED))
+		return(conceptId)
 	}
+	
 	# Remove all matches which are an ancestor of another match
 	i <- 1
-	while (i <= length(matchIds)){
+	while (i <= length(matchIds) & length(matchIds) > 1){
 		ancIds <- ancestors(matchIds[i], SNOMED = SNOMED,
 			TRANSITIVE = CDB$TRANSITIVE, include_self = FALSE)
 		if (length(intersect(matchIds, ancIds)) > 0){
@@ -155,7 +163,7 @@ compose <- function(conceptId, CDB, composeLookup,
 	}
 	
 	# Return the matches
-	as.SNOMEDconcept(matchIds, SNOMED = SNOMED)
+	matchIds
 }
 
 

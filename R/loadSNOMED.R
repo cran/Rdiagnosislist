@@ -79,7 +79,7 @@ HistorySubstitutionTable_Concepts|HISTORY')
 				message('No files matching ', thispattern)
 			} else {
 				for (thisfile in files[touse]){
-					message('Attempting to load ', sub(folder, '', thisfile))
+					message('Attempting to load ', thisfile)
 					TEMP <- NULL
 					try(TEMP <- data.table::fread(thisfile, quote = ""))
 					if (is.null(TEMP)){
@@ -388,6 +388,7 @@ createSNOMEDindices <- function(SNOMED){
 #' @export
 #' @seealso CONCEPT, DESCRIPTION, RELATIONSHIP, STATEDRELATIONSHIP, 
 #' REFSET, SIMPLEMAP, EXTENDEDMAP, HISTORY, QUERY, loadSNOMED, sampleSNOMED
+#' @family sampleSNOMED
 #' @examples
 #' TEST <- sampleSNOMED()
 #' inactiveIncluded(TEST)
@@ -522,7 +523,7 @@ getSNOMED <- function(SNOMEDname = 'SNOMED'){
 #' \url{https://isd.digital.nhs.uk/trud/user/guest/group/0/pack/9/subpack/9/releases}
 #' 
 #' The final release was in April 2020. The mapping tables are
-#' intended for converting entires in clinical records from
+#' intended for converting entries in clinical records from
 #' Read Version 2 (Read 2) to SNOMED CT, and Clinical Terms
 #' Version 3 (CTV3) to SNOMED CT.
 #' 

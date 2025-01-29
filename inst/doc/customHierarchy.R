@@ -1,6 +1,10 @@
 ## -----------------------------------------------------------------------------
 # Load package
 require(Rdiagnosislist)
+require(data.table)
+
+# Use one thread only for CRAN
+data.table::setDTthreads(threads = 1)
 
 CUSTOM <- sampleSNOMED()
 
